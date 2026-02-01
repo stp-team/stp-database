@@ -94,6 +94,38 @@ class AchievementsRepo(BaseRepo):
             await self.session.rollback()
             return None
 
+    async def get_achievements_by_period(
+        self,
+        period_type: str,  # "d", "w", "m" or "daily", "weekly", "monthly"
+    ) -> Sequence[Achievement]:
+        """Получает достижения по периоду (день/неделя/месяц).
+
+        Args:
+            period_type: Тип периода:
+                - "d" - ежедневные достижения
+                - "w" - еженедельные достижения
+                - "m" - ежемесячные достижения
+
+        Returns:
+            Список достижений указанного периода
+        """
+        try:
+            # Filter achievements where the period field is True
+            select_stmt = select(Achievement).where(Achievement.period == period_type)
+            result = await self.session.execute(select_stmt)
+            achievements = result.scalars().all()
+
+            logger.info(
+                f"[БД] Получено {len(achievements)} достижений для периода '{period_type}'"
+            )
+            return list(achievements)
+
+        except SQLAlchemyError as e:
+            logger.error(
+                f"[БД] Ошибка получения достижений для периода {period_type}: {e}"
+            )
+            return []
+
     async def update_achievement(
         self,
         achievement_id: int,
