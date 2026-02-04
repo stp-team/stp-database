@@ -3,7 +3,7 @@
 from datetime import date
 from typing import TYPE_CHECKING
 
-from sqlalchemy import BIGINT, BOOLEAN, INTEGER, Date, Unicode
+from sqlalchemy import BIGINT, BOOLEAN, INTEGER, Computed, Date, Unicode, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from stp_database.models.base import Base
@@ -57,6 +57,12 @@ class Employee(Base):
     fullname: Mapped[str] = mapped_column(
         Unicode, nullable=False, comment="ФИО сотрудника"
     )
+    fullname_hash: Mapped[str] = mapped_column(
+        Unicode(64),
+        Computed(func.sha2("fullname", 256), persisted=True),
+        nullable=False,
+        comment="Хеш ФИО сотрудника",
+    )
     head: Mapped[str] = mapped_column(
         Unicode, nullable=True, comment="ФИО руководителя сотрудника"
     )
@@ -102,17 +108,17 @@ class Employee(Base):
         default=False,
         comment="Забанен ли сотрудник на бирже подмен",
     )
-    on_vacation: Mapped[bool] = mapped_column(
-        BOOLEAN,
-        nullable=False,
-        default=False,
-        comment="Находится ли сотрудник в отпуске",
-    )
     access: Mapped[bool] = mapped_column(
         BOOLEAN,
         nullable=False,
         default=True,
         comment="Есть ли у сотрудника доступ к системам",
+    )
+    on_vacation: Mapped[bool] = mapped_column(
+        BOOLEAN,
+        nullable=False,
+        default=False,
+        comment="Находится ли сотрудник в отпуске",
     )
 
     # Отношения
