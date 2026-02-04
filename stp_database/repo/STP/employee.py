@@ -187,19 +187,27 @@ class EmployeeRepo(BaseRepo):
 
     async def update_user(
         self,
+        main_id: int = None,
         user_id: int = None,
         **kwargs: Any,
     ) -> Employee | None:
         """Обновление сотрудника.
 
         Args:
+            main_id: Идентификатор сотрудника в БД
             user_id: Идентификатор Telegram сотрудника
             **kwargs: Параметры для обновления
 
         Returns:
             Обновленный объект Employee или None
         """
-        select_stmt = select(Employee).where(Employee.user_id == user_id)
+        conditions = []
+        if main_id:
+            conditions.append(Employee.id == main_id)
+        if user_id:
+            conditions.append(Employee.user_id == user_id)
+
+        select_stmt = select(Employee).where(*conditions)
 
         result = await self.session.execute(select_stmt)
         user: Employee | None = result.scalar_one_or_none()
@@ -310,10 +318,13 @@ class EmployeeRepo(BaseRepo):
             logger.error(f"[БД] Ошибка универсального поиска пользователей: {e}")
             return []
 
-    async def delete_user(self, fullname: str = None, user_id: int = None) -> int:
+    async def delete_user(
+        self, main_id: int = None, fullname: str = None, user_id: int = None
+    ) -> int:
         """Удаление сотрудников.
 
         Args:
+            main_id: Идентификатор сотрудника в БД
             fullname: ФИО сотрудника
             user_id: Идентификатор Telegram сотрудника
 
@@ -328,6 +339,8 @@ class EmployeeRepo(BaseRepo):
         try:
             # Строим условие для поиска
             conditions = []
+            if main_id:
+                conditions.append(Employee.id == main_id)
             if fullname:
                 conditions.append(Employee.fullname == fullname)
             if user_id:
