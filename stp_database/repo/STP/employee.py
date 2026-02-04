@@ -331,9 +331,9 @@ class EmployeeRepo(BaseRepo):
         Returns:
             Кол-во удаленных пользователей
         """
-        if not fullname and not user_id:
+        if not main_id and not fullname and not user_id:
             raise ValueError(
-                "Как минимум один параметр (fullname или user_id) должен быть предоставлен"
+                "Как минимум один параметр (main_id, fullname или user_id) должен быть предоставлен"
             )
 
         try:
