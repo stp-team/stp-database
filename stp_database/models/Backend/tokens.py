@@ -152,7 +152,7 @@ class ApiTokenAuditLog(Base):
     error_message: Mapped[str | None] = mapped_column(
         Text, nullable=True, comment="Сообщение об ошибке"
     )
-    metadata: Mapped[dict | None] = mapped_column(
+    extra_metadata: Mapped[dict | None] = mapped_column(
         JSON, nullable=True, comment="Дополнительные метаданные"
     )
     created_at: Mapped[datetime] = mapped_column(
