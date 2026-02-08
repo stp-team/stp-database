@@ -79,9 +79,7 @@ class SpecPremium(Base):
     csat_normative_rate: Mapped[float | None] = mapped_column(
         Float, nullable=True, comment="Процент выполнения норматива CSAT"
     )
-    csat_premium: Mapped[float | None] = mapped_column(
-        Float, nullable=True
-    )
+    csat_premium: Mapped[float | None] = mapped_column(Float, nullable=True)
 
     gok: Mapped[float | None] = mapped_column(
         Float, nullable=True, comment="Значение показателя ГОК"

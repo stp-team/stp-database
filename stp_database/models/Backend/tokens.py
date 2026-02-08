@@ -3,7 +3,7 @@
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import BIGINT, BOOLEAN, JSON, Index, Text, Unicode, func
+from sqlalchemy import BIGINT, BOOLEAN, JSON, ForeignKey, Index, Text, Unicode, func
 from sqlalchemy.dialects.mysql import TIMESTAMP
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -87,6 +87,7 @@ class ApiToken(Base):
     creator: Mapped["Employee | None"] = relationship(
         "Employee",
         primaryjoin="ApiToken.created_by == foreign(Employee.user_id)",
+        overlaps="employee",
         lazy="select",
     )
     audit_logs: Mapped[list["ApiTokenAuditLog"]] = relationship(
@@ -117,7 +118,7 @@ class ApiTokenAuditLog(Base):
         __repr__(): Возвращает строковое представление объекта ApiTokenAuditLog.
     """
 
-    __tablename__ = "api_token_audit_logs"
+    __tablename__ = "token_audit_logs"
     __table_args__ = (
         Index("idx_token_id", "token_id"),
         Index("idx_action", "action"),
@@ -129,7 +130,10 @@ class ApiTokenAuditLog(Base):
         BIGINT, primary_key=True, comment="Уникальный идентификатор записи"
     )
     token_id: Mapped[int] = mapped_column(
-        BIGINT, nullable=False, comment="Идентификатор токена"
+        BIGINT,
+        ForeignKey("tokens.id", ondelete="CASCADE"),
+        nullable=False,
+        comment="Идентификатор токена",
     )
     action: Mapped[str] = mapped_column(
         Unicode(50), nullable=False, comment="Выполненное действие"

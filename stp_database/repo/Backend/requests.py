@@ -3,7 +3,8 @@
 from dataclasses import dataclass
 
 from sqlalchemy.ext.asyncio import AsyncSession
-from stp_database.repo.STP.api_token import ApiTokenRepo
+
+from stp_database.repo.Backend.tokens import ApiTokenRepo
 
 
 @dataclass
@@ -15,6 +16,7 @@ class BackendRequestsRepo:
 
     session: AsyncSession
 
+    @property
     def api_token(self) -> ApiTokenRepo:
         """Инициализация репозитория ApiTokenRepo с сессией для работы с API токенами."""
         return ApiTokenRepo(self.session)
