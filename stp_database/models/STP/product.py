@@ -1,6 +1,6 @@
 """Модели, связанные с сущностями предметов."""
 
-from sqlalchemy import JSON, Integer
+from sqlalchemy import JSON, Boolean, Integer
 from sqlalchemy.dialects.mysql import VARCHAR
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -54,6 +54,12 @@ class Product(Base):
     )
     manager_role: Mapped[int] = mapped_column(
         Integer, nullable=False, comment="Роль для подтверждения активации предмета"
+    )
+    active: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        comment="Доступен ли предмет пользователям",
+        default=1,
     )
 
     def __repr__(self):
