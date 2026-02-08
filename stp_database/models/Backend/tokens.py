@@ -33,7 +33,7 @@ class ApiToken(Base):
         __repr__(): Возвращает строковое представление объекта ApiToken.
     """
 
-    __tablename__ = "api_tokens"
+    __tablename__ = "tokens"
     __table_args__ = (
         Index("idx_token_hash", "token_hash"),
         Index("idx_employee_id", "employee_id"),
