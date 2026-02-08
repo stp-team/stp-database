@@ -11,7 +11,7 @@ from stp_database.repo.base import BaseRepo
 class ProductsRepo(BaseRepo):
     """Репозиторий для работы с предметами."""
 
-    async def get_products(self, division: str = None):
+    async def get_products(self, division: str = None, only_active: bool = True):
         """Получение полного списка предметов.
 
         Args:
@@ -21,9 +21,11 @@ class ProductsRepo(BaseRepo):
             Список предметов
         """
         if division:
-            select_stmt = select(Product).where(Product.division == division)
+            select_stmt = select(Product).where(
+                Product.division == division, Product.active == only_active
+            )
         else:
-            select_stmt = select(Product)
+            select_stmt = select(Product).where(Product.active == only_active)
 
         result = await self.session.execute(select_stmt)
         products = result.scalars().all()
