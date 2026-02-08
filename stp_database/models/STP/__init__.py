@@ -1,7 +1,5 @@
 """Инициализация моделей STP."""
 
-from stp_database.models.Backend.tokens import ApiToken, ApiTokenAuditLog
-
 from .achievement import Achievement
 from .broadcast import Broadcast
 from .employee import Employee
@@ -15,8 +13,6 @@ from .purchase import Purchase
 from .transactions import Transaction
 
 __all__ = [
-    "ApiToken",
-    "ApiTokenAuditLog",
     "EventLog",
     "Achievement",
     "Broadcast",
