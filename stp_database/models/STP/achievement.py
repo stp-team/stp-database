@@ -1,7 +1,7 @@
 """Модели, связанные с сущностями достижений."""
 
-from sqlalchemy import Enum, Integer
-from sqlalchemy.dialects.mysql import VARCHAR
+from sqlalchemy import Enum, Integer, Text
+from sqlalchemy.dialects.mysql import LONGTEXT, VARCHAR
 from sqlalchemy.orm import Mapped, mapped_column
 
 from stp_database.models.base import Base
@@ -63,3 +63,58 @@ class Achievement(Base):
     def __repr__(self):
         """Возвращает строковое представление объекта Achievement."""
         return f"<Achievement {self.id} {self.name} {self.description} {self.division} {self.kpi} {self.reward} {self.position} {self.period}>"
+
+
+class AchievementNew(Base):
+    """Класс, представляющий сущность достижения в БД (новая версия).
+
+    Args:
+        id: Уникальный идентификатор достижения
+        name: Название достижения
+        description: Описание достижения
+        division: Направление сотрудника (НТП/НЦК) для получения достижения
+        position: Должности, способные получить достижения
+        requirements: Требования для получения достижения (JSON)
+        reward: Награда за получение достижение в баллах
+        period: Частота возможного получения достижения
+
+    Methods:
+        __repr__(): Возвращает строковое представление объекта AchievementNew.
+    """
+
+    __tablename__ = "achievements_new"
+
+    id: Mapped[int] = mapped_column(
+        Integer,
+        primary_key=True,
+        autoincrement=True,
+        comment="Идентификатор",
+    )
+    name: Mapped[str] = mapped_column(VARCHAR(30), nullable=False, comment="Название")
+    description: Mapped[str | None] = mapped_column(
+        Text, nullable=True, comment="Описание"
+    )
+    division: Mapped[str] = mapped_column(
+        VARCHAR(3), nullable=False, comment="Направление"
+    )
+    position: Mapped[str] = mapped_column(
+        VARCHAR(31), nullable=False, comment="Должности, способные получить достижения"
+    )
+    requirements: Mapped[dict] = mapped_column(
+        LONGTEXT,
+        nullable=False,
+        default=lambda: {"type": "constant", "kpi": {}},
+        comment="Требования для получения достижения",
+    )
+    reward: Mapped[int] = mapped_column(
+        Integer, nullable=False, comment="Награда в баллах"
+    )
+    period: Mapped[str] = mapped_column(
+        Enum("daily", "weekly", "monthly", "once", "manual"),
+        nullable=False,
+        comment="Частота возможного получения достижения",
+    )
+
+    def __repr__(self):
+        """Возвращает строковое представление объекта AchievementNew."""
+        return f"<AchievementNew {self.id} {self.name} {self.description} {self.division} {self.position} {self.requirements} {self.reward} {self.period}>"
