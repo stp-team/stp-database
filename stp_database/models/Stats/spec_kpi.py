@@ -15,8 +15,8 @@ class SpecKPI(Base):
     Таблица указывается динамически через __table_args__ или при создании мапера.
 
     Args:
-        fullname: ФИО специалиста
-        contacts_count: Кол-во контактов специалиста
+        employee_id: Идентификатор сотрудника на OKC
+        contacts_count: Кол-во контактов специалиста за период
 
         csat: Значение показателя CSAT за период
         aht: Значение показателя AHT за период
@@ -31,6 +31,11 @@ class SpecKPI(Base):
 
         paid_service_count: Платный сервис реальный
         paid_service_conversion: Конверсия платного сервиса
+
+        thanks: Кол-во благодарностей за период
+        q_answered: Кол-во ответов на вопросы за период
+        q_asked: Кол-во заданных вопросов за период
+        q_asked_conversion: Конверсия заданных вопросов (вычисляемое поле)
 
         extraction_period: Дата, с которой производилась выгрузка показателей
         updated_at: Дата выгрузки показателей в БД
@@ -210,6 +215,25 @@ class SpecKPI(Base):
 
     thanks: Mapped[int | None] = mapped_column(
         Integer, nullable=True, default=0, comment="Кол-во благодарностей за период"
+    )
+
+    # Колонки, связанные с Q&A метриками
+    q_answered: Mapped[int | None] = mapped_column(
+        Integer,
+        nullable=False,
+        default=0,
+        comment="Кол-во ответов на вопросы за период",
+    )
+    q_asked: Mapped[int | None] = mapped_column(
+        Integer,
+        nullable=False,
+        default=0,
+        comment="Кол-во заданных вопросов за период",
+    )
+    q_asked_conversion: Mapped[float | None] = mapped_column(
+        Float,
+        nullable=True,
+        comment="Конверсия заданных вопросов (вычисляемое поле)",
     )
 
     extraction_period: Mapped[datetime | None] = mapped_column(
