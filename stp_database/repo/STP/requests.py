@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from stp_database.repo.STP.achievement import AchievementsRepo
+from stp_database.repo.STP.achievements_new import AchievementsNewRepo
 from stp_database.repo.STP.broadcast import BroadcastRepo
 from stp_database.repo.STP.employee import EmployeeRepo
 from stp_database.repo.STP.event_log import EventLogRepo
@@ -35,6 +36,11 @@ class MainRequestsRepo:
     def achievement(self) -> AchievementsRepo:
         """Инициализация репозитория AchievementsRepo с сессией для работы с достижениями."""
         return AchievementsRepo(self.session)
+
+    @property
+    def achievement_new(self) -> AchievementsNewRepo:
+        """Инициализация репозитория AchievementsNewRepo с сессией для работы с достижениями."""
+        return AchievementsNewRepo(self.session)
 
     @property
     def product(self) -> ProductsRepo:
