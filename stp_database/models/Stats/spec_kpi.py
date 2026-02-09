@@ -48,6 +48,9 @@ class SpecKPI(Base):
         primary_key=True,
         comment="Идентификатор сотрудника на OKC",
     )
+    user_id: Mapped[int] = mapped_column(
+        Integer, nullable=True, comment="Идентификатор пользователя"
+    )
     contacts_count: Mapped[int | None] = mapped_column(
         Integer, nullable=True, comment="Кол-во контактов специалиста за период"
     )
