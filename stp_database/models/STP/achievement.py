@@ -1,5 +1,8 @@
 """Модели, связанные с сущностями достижений."""
 
+import json
+from typing import Any
+
 from sqlalchemy import Enum, Integer, Text
 from sqlalchemy.dialects.mysql import LONGTEXT, VARCHAR
 from sqlalchemy.orm import Mapped, mapped_column
@@ -66,17 +69,17 @@ class Achievement(Base):
 
 
 class AchievementNew(Base):
-    """Класс, представляющий сущность достижения в БД (новая версия).
+    """Класс, представляющий сущность достижения в БД (achievements_new).
 
     Args:
         id: Уникальный идентификатор достижения
         name: Название достижения
         description: Описание достижения
         division: Направление сотрудника (НТП/НЦК) для получения достижения
-        position: Должности, способные получить достижения
         requirements: Требования для получения достижения (JSON)
         reward: Награда за получение достижение в баллах
-        period: Частота возможного получения достижения
+        position: Позиция/должность сотрудника для получения достижения
+        period: Частота возможного получения достижения (daily, weekly, monthly, once, manual)
 
     Methods:
         __repr__(): Возвращает строковое представление объекта AchievementNew.
@@ -95,26 +98,42 @@ class AchievementNew(Base):
         Text, nullable=True, comment="Описание"
     )
     division: Mapped[str] = mapped_column(
-        VARCHAR(3), nullable=False, comment="Направление"
+        VARCHAR(3),
+        nullable=False,
+        comment="Направление",
     )
     position: Mapped[str] = mapped_column(
-        VARCHAR(31), nullable=False, comment="Должности, способные получить достижения"
+        VARCHAR(31),
+        nullable=False,
+        comment="Должности, способные получить достижения",
     )
-    requirements: Mapped[dict] = mapped_column(
+    requirements: Mapped[str] = mapped_column(
         LONGTEXT,
         nullable=False,
-        default=lambda: {"type": "constant", "kpi": {}},
+        default='{"type": "constant", "kpi": {}}',
         comment="Требования для получения достижения",
     )
     reward: Mapped[int] = mapped_column(
         Integer, nullable=False, comment="Награда в баллах"
     )
     period: Mapped[str] = mapped_column(
-        Enum("daily", "weekly", "monthly", "once", "manual"),
+        Enum("daily", "weekly", "monthly", "once", "manual", name="achievement_period"),
         nullable=False,
-        comment="Частота возможного получения достижения",
+        comment="Период получения достижения",
     )
+
+    @property
+    def requirements_dict(self) -> str | Any:
+        """Get requirements as a dictionary."""
+        if isinstance(self.requirements, str):
+            return json.loads(self.requirements)
+        return self.requirements
+
+    @requirements_dict.setter
+    def requirements_dict(self, value: dict) -> None:
+        """Set requirements from a dictionary."""
+        self.requirements = json.dumps(value)
 
     def __repr__(self):
         """Возвращает строковое представление объекта AchievementNew."""
-        return f"<AchievementNew {self.id} {self.name} {self.description} {self.division} {self.position} {self.requirements} {self.reward} {self.period}>"
+        return f"<AchievementNew {self.id} {self.name} {self.description} {self.division} {self.requirements} {self.reward} {self.position} {self.period}>"
