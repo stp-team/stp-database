@@ -1,5 +1,6 @@
 """Репозиторий функций для взаимодействия с таблицей достижений (новая версия)."""
 
+import json
 import logging
 from typing import Any, Sequence
 
@@ -73,11 +74,14 @@ class AchievementsNewRepo(BaseRepo):
         Returns:
             Созданный объект AchievementNew или None в случае ошибки
         """
+        # Serialize requirements to JSON string for database storage
+        requirements_json = json.dumps(requirements) if isinstance(requirements, dict) else requirements
+
         new_achievement = AchievementNew(
             name=name,
             description=description,
             division=division,
-            requirements=requirements,
+            requirements=requirements_json,
             reward=reward,
             position=position,
             period=period,
@@ -150,6 +154,9 @@ class AchievementsNewRepo(BaseRepo):
 
         if achievement:
             for key, value in kwargs.items():
+                # Serialize requirements to JSON string for database storage
+                if key == 'requirements' and isinstance(value, dict):
+                    value = json.dumps(value)
                 setattr(achievement, key, value)
             await self.session.commit()
             logger.info(f"[БД] Обновлено достижение с ID {achievement_id}")
