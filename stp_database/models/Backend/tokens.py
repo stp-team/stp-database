@@ -16,6 +16,11 @@ if TYPE_CHECKING:
 class ApiToken(Base):
     """Модель, представляющий API токен в БД.
 
+    Токен может находиться в трех состояниях:
+    - Активен (is_active=True, is_revoked=False): токен можно использовать
+    - Деактивирован (is_active=False, is_revoked=False): токен временно отключен, можно активировать
+    - Отозван (is_revoked=True): токен безвозвратно отключен, восстановление невозможно
+
     Args:
         id: Уникальный идентификатор токена
         token_hash: Хеш токена
@@ -23,6 +28,7 @@ class ApiToken(Base):
         name: Название токена
         description: Описание токена
         is_active: Активен ли токен
+        is_revoked: Отозван ли токен (безвозвратно)
         expires_at: Дата истечения токена
         last_used_at: Дата последнего использования
         permissions: JSON с разрешениями токена
@@ -61,6 +67,12 @@ class ApiToken(Base):
         nullable=False,
         default=True,
         comment="Активен ли токен",
+    )
+    is_revoked: Mapped[bool] = mapped_column(
+        BOOLEAN,
+        nullable=False,
+        default=False,
+        comment="Отозван ли токен (безвозвратно)",
     )
     expires_at: Mapped[datetime | None] = mapped_column(
         TIMESTAMP, nullable=True, comment="Дата истечения токена"

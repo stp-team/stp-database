@@ -5,7 +5,7 @@ import logging
 import secrets
 from datetime import datetime, timedelta
 
-from sqlalchemy import and_, select
+from sqlalchemy import and_, or_, select
 from sqlalchemy.exc import SQLAlchemyError
 
 from stp_database.models.Backend.tokens import ApiToken, ApiTokenAuditLog
@@ -109,6 +109,7 @@ class ApiTokenRepo(BaseRepo):
             and_(
                 ApiToken.token_hash == token_hash,
                 ApiToken.is_active,
+                not ApiToken.is_revoked,
             )
         )
 
@@ -122,7 +123,7 @@ class ApiTokenRepo(BaseRepo):
                     token_id=None,
                     action="token_validation_failed",
                     success=False,
-                    error_message="Токен не найден или неактивен",
+                    error_message="Токен не найден, неактивен или отозван",
                     ip_address=ip_address,
                     user_agent=user_agent,
                     endpoint=endpoint,
@@ -163,7 +164,10 @@ class ApiTokenRepo(BaseRepo):
             return None
 
     async def revoke_token(self, token_id: int) -> bool:
-        """Отзыв API токена.
+        """Отзыв API токена (безвозвратно).
+
+        Отозванный токен невозможно восстановить.
+        Это действие отменяет активность токена и ставит метку отзыва.
 
         Args:
             token_id: Идентификатор токена
@@ -181,10 +185,12 @@ class ApiTokenRepo(BaseRepo):
                 logger.warning(f"[БД] Токен с ID {token_id} не найден")
                 return False
 
+            # Отзыв - безвозвратное действие
+            token.is_revoked = True
             token.is_active = False
             await self.session.commit()
 
-            logger.info(f"[БД] Токен {token_id} отозван")
+            logger.info(f"[БД] Токен {token_id} отозван (безвозвратно)")
 
             # Создаем запись аудита
             await self._create_audit_log(
@@ -199,8 +205,98 @@ class ApiTokenRepo(BaseRepo):
             await self.session.rollback()
             return False
 
+    async def deactivate_token(self, token_id: int) -> bool:
+        """Деактивация API токена (обратимое действие).
+
+        В отличие от отзыва, деактивацию можно отменить через activate_token.
+
+        Args:
+            token_id: Идентификатор токена
+
+        Returns:
+            True если успешно, False если токен не найден или отозван
+        """
+        query = select(ApiToken).where(ApiToken.id == token_id)
+
+        try:
+            result = await self.session.execute(query)
+            token: ApiToken | None = result.scalar_one_or_none()
+
+            if token is None:
+                logger.warning(f"[БД] Токен с ID {token_id} не найден")
+                return False
+
+            if token.is_revoked:
+                logger.warning(
+                    f"[БД] Токен {token_id} уже отозван, деактивация невозможна"
+                )
+                return False
+
+            token.is_active = False
+            await self.session.commit()
+
+            logger.info(f"[БД] Токен {token_id} деактивирован")
+
+            # Создаем запись аудита
+            await self._create_audit_log(
+                token_id=token.id,
+                action="token_deactivated",
+                success=True,
+            )
+
+            return True
+        except SQLAlchemyError as e:
+            logger.error(f"[БД] Ошибка деактивации токена {token_id}: {e}")
+            await self.session.rollback()
+            return False
+
+    async def activate_token(self, token_id: int) -> bool:
+        """Активация API токена.
+
+        Активировать можно только токен, который не был отозван.
+
+        Args:
+            token_id: Идентификатор токена
+
+        Returns:
+            True если успешно, False если токен не найден или отозван
+        """
+        query = select(ApiToken).where(ApiToken.id == token_id)
+
+        try:
+            result = await self.session.execute(query)
+            token: ApiToken | None = result.scalar_one_or_none()
+
+            if token is None:
+                logger.warning(f"[БД] Токен с ID {token_id} не найден")
+                return False
+
+            if token.is_revoked:
+                logger.warning(f"[БД] Токен {token_id} отозван, активация невозможна")
+                return False
+
+            token.is_active = True
+            await self.session.commit()
+
+            logger.info(f"[БД] Токен {token_id} активирован")
+
+            # Создаем запись аудита
+            await self._create_audit_log(
+                token_id=token.id,
+                action="token_activated",
+                success=True,
+            )
+
+            return True
+        except SQLAlchemyError as e:
+            logger.error(f"[БД] Ошибка активации токена {token_id}: {e}")
+            await self.session.rollback()
+            return False
+
     async def extend_token(self, token_id: int, days: int) -> ApiToken | None:
         """Продление срока действия API токена.
+
+        Нельзя продлить отозванный токен.
 
         Args:
             token_id: Идентификатор токена
@@ -217,6 +313,10 @@ class ApiTokenRepo(BaseRepo):
 
             if token is None:
                 logger.warning(f"[БД] Токен с ID {token_id} не найден")
+                return None
+
+            if token.is_revoked:
+                logger.warning(f"[БД] Токен {token_id} отозван, продление невозможно")
                 return None
 
             # Если expires_at был None, устанавливаем от текущей даты
@@ -339,7 +439,7 @@ class ApiTokenRepo(BaseRepo):
         self,
         days_inactive: int = 30,
     ) -> int:
-        """Очистка неактивных истекших токенов.
+        """Очистка неактивных или отозванных истекших токенов.
 
         Args:
             days_inactive: Количество дней неактивности
@@ -349,11 +449,14 @@ class ApiTokenRepo(BaseRepo):
         """
         cutoff_date = datetime.now() - timedelta(days=days_inactive)
 
-        # Находим токены для удаления
+        # Находим токены для удаления (неактивные ИЛИ отозванные)
         query = select(ApiToken).where(
             and_(
-                not ApiToken.is_active,
                 ApiToken.expires_at < cutoff_date,
+                or_(
+                    not ApiToken.is_active,
+                    ApiToken.is_revoked,
+                ),
             )
         )
 
@@ -368,7 +471,9 @@ class ApiTokenRepo(BaseRepo):
 
             if deleted_count > 0:
                 await self.session.commit()
-                logger.info(f"[БД] Удалено {deleted_count} неактивных токенов")
+                logger.info(
+                    f"[БД] Удалено {deleted_count} неактивных/отозванных токенов"
+                )
 
             return deleted_count
         except SQLAlchemyError as e:

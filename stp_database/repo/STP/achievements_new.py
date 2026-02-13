@@ -75,7 +75,9 @@ class AchievementsNewRepo(BaseRepo):
             Созданный объект AchievementNew или None в случае ошибки
         """
         # Serialize requirements to JSON string for database storage
-        requirements_json = json.dumps(requirements) if isinstance(requirements, dict) else requirements
+        requirements_json = (
+            json.dumps(requirements) if isinstance(requirements, dict) else requirements
+        )
 
         new_achievement = AchievementNew(
             name=name,
@@ -155,7 +157,7 @@ class AchievementsNewRepo(BaseRepo):
         if achievement:
             for key, value in kwargs.items():
                 # Serialize requirements to JSON string for database storage
-                if key == 'requirements' and isinstance(value, dict):
+                if key == "requirements" and isinstance(value, dict):
                     value = json.dumps(value)
                 setattr(achievement, key, value)
             await self.session.commit()
