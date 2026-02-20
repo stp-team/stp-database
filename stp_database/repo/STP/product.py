@@ -108,6 +108,7 @@ class ProductsRepo(BaseRepo):
         )
         self.session.add(product)
         await self.session.flush()
+        await self.session.commit()
         return product
 
     async def update_product(
@@ -160,6 +161,7 @@ class ProductsRepo(BaseRepo):
             product.active = active
 
         await self.session.flush()
+        await self.session.commit()
         return product
 
     async def delete_product(self, product_id: int) -> bool:
@@ -177,4 +179,5 @@ class ProductsRepo(BaseRepo):
 
         await self.session.delete(product)
         await self.session.flush()
+        await self.session.commit()
         return True
