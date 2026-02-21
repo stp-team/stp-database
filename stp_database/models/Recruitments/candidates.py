@@ -101,7 +101,7 @@ class Candidate(Base):
         BIGINT, nullable=True, comment="Менеджер, принявший решение по кандидату"
     )
     rejection_reason: Mapped[str | None] = mapped_column(
-        Enum("found_job", "not_interested", "other"),
+        Enum("found_job", "not_interested", "requirements", "other"),
         nullable=True,
         comment="Причина отказа",
     )
