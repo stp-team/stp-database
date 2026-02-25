@@ -5,7 +5,7 @@ import logging
 import secrets
 from datetime import datetime, timedelta
 
-from sqlalchemy import and_, or_, select
+from sqlalchemy import and_, not_, or_, select
 from sqlalchemy.exc import SQLAlchemyError
 
 from stp_database.models.Backend.tokens import ApiToken, ApiTokenAuditLog
@@ -109,7 +109,7 @@ class ApiTokenRepo(BaseRepo):
             and_(
                 ApiToken.token_hash == token_hash,
                 ApiToken.is_active,
-                not ApiToken.is_revoked,
+                not_(ApiToken.is_revoked),
             )
         )
 
@@ -454,7 +454,7 @@ class ApiTokenRepo(BaseRepo):
             and_(
                 ApiToken.expires_at < cutoff_date,
                 or_(
-                    not ApiToken.is_active,
+                    not_(ApiToken.is_revoked),
                     ApiToken.is_revoked,
                 ),
             )
@@ -540,7 +540,6 @@ class ApiTokenRepo(BaseRepo):
             endpoint=endpoint,
             success=success,
             error_message=error_message,
-            metadata=metadata,
         )
 
         try:
