@@ -94,7 +94,8 @@ class ProductsRepo(BaseRepo):
         cost: int,
         count: int,
         manager_role: int,
-        activate_days: list = None,
+        buyer_roles: list[int] | None = None,
+        activate_days: list[int] | None = None,
         active: bool = True,
     ) -> Product:
         """Создание нового предмета.
@@ -118,6 +119,7 @@ class ProductsRepo(BaseRepo):
             division=division,
             cost=cost,
             count=count,
+            buyer_roles=buyer_roles,
             manager_role=manager_role,
             activate_days=activate_days,
             active=active,
@@ -136,7 +138,8 @@ class ProductsRepo(BaseRepo):
         cost: int = None,
         count: int = None,
         manager_role: int = None,
-        activate_days: list = None,
+        buyer_roles: list[int] | None = None,
+        activate_days: list[int] | None = None,
         active: bool = None,
     ) -> Product | None:
         """Обновление информации о предмете.
