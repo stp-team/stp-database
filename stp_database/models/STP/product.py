@@ -52,6 +52,9 @@ class Product(Base):
     activate_days: Mapped[list] = mapped_column(
         JSON, nullable=True, comment="Дни доступности активации предмета"
     )
+    buyer_roles: Mapped[list] = mapped_column(
+        JSON, nullable=True, comment="Роли с доступом к предмету"
+    )
     manager_role: Mapped[int] = mapped_column(
         Integer, nullable=False, comment="Роль для подтверждения активации предмета"
     )
