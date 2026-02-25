@@ -2,7 +2,7 @@
 
 from typing import List
 
-from sqlalchemy import and_, select
+from sqlalchemy import func, or_, select
 
 from stp_database.models.STP import Product
 from stp_database.repo.base import BaseRepo
@@ -47,23 +47,39 @@ class ProductsRepo(BaseRepo):
         return result.scalar_one_or_none()
 
     async def get_available_products(
-        self, user_balance: int, division: str
+        self, user_balance: int, division: str, user_role: int = None
     ) -> List[Product]:
         """Получение списка доступных предметов для пользователя.
 
-        Возвращает предметы, стоимость которых меньше или равна балансу пользователя.
+        Возвращает предметы, стоимость которых меньше или равна балансу пользователя,
+        и которые доступны для роли пользователя.
 
         Args:
             user_balance: Количество баллов пользователя
             division: Подразделение для фильтрации
+            user_role: ID роли пользователя для фильтрации по buyer_roles
 
         Returns:
             Список доступных предметов
         """
-        # Получаем список предметов, подходящих под критерии
-        select_stmt = select(Product).where(
-            and_(Product.cost <= user_balance), Product.division == division
-        )
+        # Базовые условия: стоимость и подразделение
+        conditions = [
+            Product.cost <= user_balance,
+            Product.division == division,
+        ]
+
+        # Если указана роль пользователя, добавляем фильтрацию по buyer_roles
+        if user_role is not None:
+            # Товар доступен, если buyer_roles пустой/None ИЛИ содержит роль пользователя
+            conditions.append(
+                or_(
+                    Product.buyer_roles.is_(None),
+                    Product.buyer_roles == [],
+                    func.json_contains(Product.buyer_roles, user_role),
+                )
+            )
+
+        select_stmt = select(Product).where(*conditions)
 
         result = await self.session.execute(select_stmt)
         products = result.scalars().all()
