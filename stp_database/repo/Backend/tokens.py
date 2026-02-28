@@ -435,7 +435,6 @@ class ApiTokenRepo(BaseRepo):
             endpoint=endpoint,
             success=success,
             error_message=error_message,
-            metadata=metadata,
         )
 
         try:

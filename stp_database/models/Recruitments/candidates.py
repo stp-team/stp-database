@@ -1,6 +1,8 @@
 """Модели, связанные с сущностями кандидатов."""
 
-from sqlalchemy import BIGINT, Enum, Integer
+from datetime import datetime
+
+from sqlalchemy import BIGINT, TIMESTAMP, Enum, Integer, func
 from sqlalchemy.dialects.mysql import LONGTEXT, VARCHAR
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -28,6 +30,7 @@ class Candidate(Base):
         typing_speed: Скорость печати кандидата
         resume_link: Ссылка на резюме кандидата
         rejection_reason: Причина отказа
+        created_at: Дата создания кандидата
 
     Methods:
         __repr__(): Возвращает строковое представление объекта Candidate.
@@ -104,6 +107,9 @@ class Candidate(Base):
         Enum("found_job", "not_interested", "requirements", "other"),
         nullable=True,
         comment="Причина отказа",
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        TIMESTAMP, server_default=func.now(), comment="Дата создания записи"
     )
 
     def __repr__(self):
