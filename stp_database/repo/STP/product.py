@@ -11,22 +11,38 @@ from stp_database.repo.base import BaseRepo
 class ProductsRepo(BaseRepo):
     """Репозиторий для работы с предметами."""
 
-    async def get_products(self, division: str = None, only_active: bool = True):
+    async def get_products(
+        self,
+        division: str | None = None,
+        role: int | None = None,
+        only_active: bool = True,
+    ):
         """Получение полного списка предметов.
 
         Args:
             division: Фильтр по подразделению (опционально)
+            role: ID роли для фильтрации по buyer_roles (опционально)
+            only_active: Фильтр только активных предметов
 
         Returns:
             Список предметов
         """
-        if division:
-            select_stmt = select(Product).where(
-                Product.division == division, Product.active == only_active
-            )
-        else:
-            select_stmt = select(Product).where(Product.active == only_active)
+        conditions = [Product.active == only_active]
 
+        if division:
+            conditions.append(Product.division == division)
+
+        # Если указана роль, добавляем фильтрацию по buyer_roles
+        if role is not None:
+            conditions.append(
+                or_(
+                    Product.buyer_roles.is_(None),
+                    Product.buyer_roles == [],
+                    func.json_contains(Product.buyer_roles, role),
+                )
+            )
+
+        select_stmt = select(Product).where(*conditions)
         result = await self.session.execute(select_stmt)
         products = result.scalars().all()
 
@@ -47,7 +63,7 @@ class ProductsRepo(BaseRepo):
         return result.scalar_one()
 
     async def get_available_products(
-        self, user_balance: int, division: str, user_role: int = None
+        self, user_balance: int, division: str, user_role: int | None = None
     ) -> List[Product]:
         """Получение списка доступных предметов для пользователя.
 
