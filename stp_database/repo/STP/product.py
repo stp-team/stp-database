@@ -11,6 +11,22 @@ from stp_database.repo.base import BaseRepo
 class ProductsRepo(BaseRepo):
     """Репозиторий для работы с предметами."""
 
+    @staticmethod
+    def _normalize_division(division: str | None) -> str | None:
+        """Нормализация подразделения.
+
+        Если подразделение начинается с 'НТП', возвращает 'НТП'.
+
+        Args:
+            division: Подразделение для нормализации
+
+        Returns:
+            Нормализованное подразделение
+        """
+        if division and division.startswith("НТП"):
+            return "НТП"
+        return division
+
     async def get_products(
         self,
         division: str | None = None,
@@ -29,8 +45,11 @@ class ProductsRepo(BaseRepo):
         """
         conditions = [Product.active == only_active]
 
-        if division:
-            conditions.append(Product.division == division)
+        # Нормализуем подразделение (НТП1, НТП2 -> НТП)
+        normalized_division = self._normalize_division(division)
+
+        if normalized_division:
+            conditions.append(Product.division == normalized_division)
 
         # Если указана роль, добавляем фильтрацию по buyer_roles
         if role is not None:
@@ -78,10 +97,13 @@ class ProductsRepo(BaseRepo):
         Returns:
             Список доступных предметов
         """
+        # Нормализуем подразделение (НТП1, НТП2 -> НТП)
+        normalized_division = self._normalize_division(division)
+
         # Базовые условия: стоимость и подразделение
         conditions = [
             Product.cost <= user_balance,
-            Product.division == division,
+            Product.division == normalized_division,
         ]
 
         # Если указана роль пользователя, добавляем фильтрацию по buyer_roles
