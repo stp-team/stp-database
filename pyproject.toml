@@ -10,7 +10,6 @@ authors = [
 dependencies = [
     "sqlalchemy>=2.0.43",
     "aiomysql>=0.3.2",
-    "infrastructure>=3.5.6",
     "pytz>=2025.2",
 ]
 
