@@ -69,11 +69,6 @@ class Employee(Base):
     email: Mapped[str] = mapped_column(
         Unicode, nullable=True, comment="Email сотрудника"
     )
-    birthday: Mapped[date | None] = mapped_column(
-        Date,
-        nullable=True,
-        comment="День рождения",
-    )
     employment_date: Mapped[date | None] = mapped_column(
         Date,
         nullable=True,
