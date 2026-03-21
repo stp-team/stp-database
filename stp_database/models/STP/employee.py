@@ -1,5 +1,5 @@
 """Модели, связанные с сущностями сотрудников."""
-
+from asyncio.windows_events import NULL
 from datetime import date
 from typing import TYPE_CHECKING
 
@@ -18,17 +18,25 @@ class Employee(Base):
 
     Args:
         id: Уникальный идентификатор пользователя
+        employee_id: идентификатор сотрудника из отчетной среды
         user_id: Идентификатор сотрудника в Telegram
         username: Username сотрудника в Telegram
+        login: уникальный логин авторизации на портале веб приложений, индивидуальный для сотрудника
         division: Направление сотрудника (НТП/НЦК)
         position: Позиция/должность сотрудника
         fullname: ФИО сотрудника
+        fullname_hash: хеш ФИО
+        password_hash: хеш пароля для авторизации на портале веб приложений
         head: ФИО руководителя сотрудника
         email: Email сотрудника
         role: Уровень доступа сотрудника в БД
         is_trainee: Является ли сотрудник стажером
         is_casino_allowed: Разрешено ли казино сотруднику
         is_exchange_banned: Забанен ли сотрудник на бирже смен
+        access: доступ к веб приложениям и ботам
+        on_vacation: в отпуске
+        totp_requires: bool подключена ли двухфакторка или нет, если нет - нужно просить настроить
+        totp_secret: секрет для валидации генерируевых кодов
 
     Methods:
         __repr__(): Возвращает строковое представление объекта Employee.
@@ -46,7 +54,14 @@ class Employee(Base):
         BIGINT, nullable=True, comment="Идентификатор сотрудника в Telegram"
     )
     username: Mapped[str] = mapped_column(
-        Unicode, nullable=True, comment="Username сотрудника в Telegram"
+        Unicode,nullable=True, comment="Username сотрудника в Telegram"
+    )
+    login: Mapped[str] = mapped_column(
+        Unicode,
+        default=None,
+        unique=True,
+        nullable=True,
+        comment="Логин сотрудника"
     )
     division: Mapped[str] = mapped_column(
         Unicode, nullable=True, comment="Направление сотрудника (НТП/НЦК)"
@@ -62,6 +77,12 @@ class Employee(Base):
         Computed(func.sha2("fullname", 256), persisted=True),
         nullable=False,
         comment="Хеш ФИО сотрудника",
+    )
+    password_hash: Mapped[str] = mapped_column(
+        Unicode,
+        default=None,
+        nullable=True,
+        comment="Пароль сотрудника"
     )
     head: Mapped[str] = mapped_column(
         Unicode, nullable=True, comment="ФИО руководителя сотрудника"
@@ -114,6 +135,18 @@ class Employee(Base):
         nullable=False,
         default=False,
         comment="Находится ли сотрудник в отпуске",
+    )
+    totp_requires: Mapped[bool] = mapped_column(
+        BOOLEAN,
+        nullable=False,
+        default=False,
+        comment="Подключена ли двухфакторка"
+    )
+    totp_secret: Mapped[str] = mapped_column(
+        Unicode,
+        nullable=True,
+        default=None,
+        comment="Секрет двухфакторки"
     )
 
     # Отношения
