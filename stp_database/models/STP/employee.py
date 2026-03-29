@@ -1,5 +1,4 @@
 """Модели, связанные с сущностями сотрудников."""
-from asyncio.windows_events import NULL
 from datetime import date
 from typing import TYPE_CHECKING
 
