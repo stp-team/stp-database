@@ -59,14 +59,15 @@ class EmployeeRepo(BaseRepo):
             return None
 
     async def get_users(
-        self,
-        main_id: int | list[int] | None = None,
-        user_id: int | list[int] | None = None,
-        username: str | None = None,
-        fullname: str | None = None,
-        email: str | None = None,
-        head: str | None = None,
-        roles: int | list[int] | None = None,
+            self,
+            main_id: int | list[int] | None = None,
+            user_id: int | list[int] | None = None,
+            username: str | None = None,
+            login: str | None = None,
+            fullname: str | None = None,
+            email: str | None = None,
+            head: str | None = None,
+            roles: int | list[int] | None = None,
     ) -> Employee | None | Sequence[Employee]:
         """Поиск пользователя или списка пользователей.
 
@@ -74,79 +75,71 @@ class EmployeeRepo(BaseRepo):
             main_id: Primary Key (int - возвращает одного пользователя, list[int] - возвращает список)
             user_id: Уникальный идентификатор пользователя Telegram (int - возвращает одного пользователя, list[int] - возвращает список)
             username: Никнейм пользователя Telegram (если указан, возвращает одного пользователя)
+            login: Логин пользователя (если указан, возвращает одного пользователя)
             fullname: ФИО пользователя в БД (если указан, возвращает одного пользователя)
             email: Почта пользователя в БД (если указан, возвращает одного пользователя)
             head: ФИО руководителя (если указан, возвращает участников группы руководителя)
             roles: Роль (int) или список ролей (list[int]) для фильтрации списка пользователей
 
         Returns:
-            Объект Employee или None (если указан одиночный main_id, user_id, username, fullname или email)
+            Объект Employee или None (если указан одиночный main_id, user_id, username, login, fullname или email)
             Последовательность Employee (если указаны списки или другие параметры)
         """
         # Определяем, одиночный запрос или множественный
         is_single = (
-            (isinstance(main_id, int))
-            or (isinstance(user_id, int))
-            or (username is not None)
-            or (fullname is not None)
-            or (email is not None)
+                isinstance(main_id, int)
+                or isinstance(user_id, int)
+                or username is not None
+                or login is not None
+                or fullname is not None
+                or email is not None
         )
 
         if is_single:
-            # Запрос одного пользователя
             filters = []
-
+            # Запрос одного пользователя
             if isinstance(main_id, int):
                 filters.append(Employee.id == main_id)
             if isinstance(user_id, int):
                 filters.append(Employee.user_id == user_id)
-            if username:
+            if username is not None:
                 filters.append(Employee.username == username)
-            if fullname:
+            if login is not None:
+                filters.append(Employee.login == login)
+            if fullname is not None:
                 filters.append(Employee.fullname == fullname)
-            if email:
+            if email is not None:
                 filters.append(Employee.email == email)
 
             query = select(Employee).where(*filters).order_by(Employee.fullname.desc())
 
             try:
                 result = await self.session.execute(query)
-                return result.scalar_one_or_none()
+                return result.scalars().first()
             except SQLAlchemyError as e:
                 logger.error(f"[БД] Ошибка получения пользователя: {e}")
                 return None
-        else:
-            # Запрос списка пользователей
+        else:  # Запрос списка пользователей
             filters = []
-
             # Фильтр по main_id (список)
             if isinstance(main_id, list) and main_id:
                 filters.append(Employee.id.in_(main_id))
-
             # Фильтр по user_id (список)
             if isinstance(user_id, list) and user_id:
                 filters.append(Employee.user_id.in_(user_id))
-
             # Фильтр по руководителю
             if head is not None:
                 filters.append(Employee.head == head)
-
             # Фильтр по ролям
             if roles is not None:
-                if isinstance(roles, int):
-                    # Одна роль
+                if isinstance(roles, int):  # Одна роль
                     filters.append(Employee.role == roles)
-                elif isinstance(roles, list) and roles:
-                    # Список ролей
+                elif isinstance(roles, list) and roles:  # Список ролей
                     filters.append(Employee.role.in_(roles))
-
             # Формируем запрос
             if filters:
-                query = (
-                    select(Employee).where(*filters).order_by(Employee.fullname.desc())
-                )
-            else:
-                # Все пользователи
+                query = select(Employee).where(*filters).order_by(Employee.fullname.desc())
+            else:  # Все пользователи
                 query = select(Employee).order_by(Employee.fullname.desc())
 
             try:
