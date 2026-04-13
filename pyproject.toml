@@ -8,7 +8,7 @@ authors = [
     { name = "Roman Chursanov", email = "roman@chrsnv.ru" }
 ]
 dependencies = [
-    "sqlalchemy>=2.0.43",
+    "sqlalchemy>=2.0.49",
     "aiomysql>=0.3.2",
     "pytz>=2025.2",
 ]
