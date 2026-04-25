@@ -99,7 +99,7 @@ class PurchaseRepo(BaseRepo):
 
         # Джойн с Employee для фильтрации по division и manager_role
         if manager_role is not None or division is not None:
-            query = query.join(Employee, Purchase.user_id == Employee.user_id)
+            query = query.join(Employee, Purchase.user_id == Employee.id)
 
         # Фильтрация по пользователю
         if user_id is not None:
@@ -257,7 +257,7 @@ class PurchaseRepo(BaseRepo):
         select_stmt = (
             select(Purchase, Product, Employee)
             .join(Product, Purchase.product_id == Product.id)
-            .join(Employee, Purchase.user_id == Employee.user_id)
+            .join(Employee, Purchase.user_id == Employee.id)
             .where(Purchase.status == "review", Product.manager_role == manager_role)
         )
 
@@ -481,7 +481,7 @@ class PurchaseRepo(BaseRepo):
                     func.count(Purchase.product_id).label("purchase_count"),
                 )
                 .select_from(Employee)
-                .join(Purchase, Employee.user_id == Purchase.user_id)
+                .join(Purchase, Employee.id == Purchase.user_id)
                 .join(Product, Purchase.product_id == Product.id)
                 .where(Employee.head == head_name)
                 .group_by(Product.name)
