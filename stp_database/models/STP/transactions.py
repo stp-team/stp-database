@@ -51,7 +51,7 @@ class Transaction(Base):
         comment="Идентификатор достижения или предмета. Для manual или casino — None",
     )
     source_type: Mapped[str] = mapped_column(
-        Enum("achievement", "product", "manual", "casino"),
+        Enum("achievement", "achievement_new", "product", "manual", "casino"),
         nullable=False,
         comment="Источник транзакции: achievement, product, casino, manual",
     )

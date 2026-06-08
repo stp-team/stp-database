@@ -117,7 +117,7 @@ class TransactionRepo(BaseRepo):
             query = select(Transaction).where(Transaction.user_id == user_id)
 
             if only_achievements:
-                query = query.where(Transaction.source_type == "achievement")
+                query = query.where(Transaction.source_type.in_(["achievement", "achievement_new"]))
 
             query = query.order_by(Transaction.created_at.desc())
             result = await self.session.execute(query)
@@ -243,7 +243,7 @@ class TransactionRepo(BaseRepo):
         try:
             query = select(Transaction).where(
                 Transaction.user_id == user_id,
-                Transaction.source_type.in_(["achievement", "manual"]),
+                Transaction.source_type.in_(["achievement", "achievement_new", "manual"]),
                 Transaction.type == "earn",
             )
             result = await self.session.execute(query)
