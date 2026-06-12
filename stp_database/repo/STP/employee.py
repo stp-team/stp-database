@@ -71,6 +71,7 @@ class EmployeeRepo(BaseRepo):
             position: str | None = None,
             head: str | None = None,
             roles: int | list[int] | None = None,
+            access: bool | None = None,
     ) -> Employee | None | Sequence[Employee]:
         """Поиск пользователя или списка пользователей."""
         is_single = (
@@ -135,7 +136,9 @@ class EmployeeRepo(BaseRepo):
                     filters.append(Employee.role == roles)
                 elif isinstance(roles, list) and roles:
                     filters.append(Employee.role.in_(roles))
-
+            if access is not None:
+                filters.append(Employee.access == access)
+            
             if filters:
                 query = select(Employee).where(*filters).order_by(Employee.fullname.desc())
             else:
