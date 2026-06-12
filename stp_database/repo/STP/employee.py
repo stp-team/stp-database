@@ -67,6 +67,8 @@ class EmployeeRepo(BaseRepo):
             login: str | None = None,
             fullname: str | None = None,
             email: str | None = None,
+            division: str | None = None,
+            position: str | None = None,
             head: str | None = None,
             roles: int | list[int] | None = None,
     ) -> Employee | None | Sequence[Employee]:
@@ -79,6 +81,8 @@ class EmployeeRepo(BaseRepo):
                 or login is not None
                 or fullname is not None
                 or email is not None
+                or division is not None
+                or position is not None
         )
 
         if is_single:
@@ -98,6 +102,10 @@ class EmployeeRepo(BaseRepo):
                 filters.append(Employee.fullname == fullname)
             if email is not None:
                 filters.append(Employee.email == email)
+            if division is not None:
+                filters.append(Employee.division == division)
+            if position is not None:
+                filters.append(Employee.position == position)
 
             query = select(Employee).where(*filters).order_by(Employee.fullname.desc())
 
@@ -116,6 +124,10 @@ class EmployeeRepo(BaseRepo):
                 filters.append(Employee.employee_id.in_(employee_id))
             if isinstance(user_id, list) and user_id:
                 filters.append(Employee.user_id.in_(user_id))
+            if division is not None:
+                filters.append(Employee.division == division)
+            if position is not None:
+                filters.append(Employee.position == position)
             if head is not None:
                 filters.append(Employee.head == head)
             if roles is not None:
