@@ -81,8 +81,6 @@ class EmployeeRepo(BaseRepo):
                 or login is not None
                 or fullname is not None
                 or email is not None
-                or division is not None
-                or position is not None
         )
 
         if is_single:
@@ -106,6 +104,8 @@ class EmployeeRepo(BaseRepo):
                 filters.append(Employee.division == division)
             if position is not None:
                 filters.append(Employee.position == position)
+            if head is not None:
+                filters.append(Employee.head == head)
 
             query = select(Employee).where(*filters).order_by(Employee.fullname.desc())
 
