@@ -1,19 +1,92 @@
-﻿"""Репозиторий функций для работы со сменами."""
+"""Репозиторий функций для работы со сменами."""
 
 import uuid
-from datetime import datetime, timedelta, date, time
-from typing import Any, Sequence
+from datetime import date, datetime, time
+from typing import Sequence
 
-from sqlalchemy import and_, extract, func, or_, select, delete
+from sqlalchemy import delete, select
 
-from stp_database import DbConfig
-from stp_database.models.Shedule import Shift, ShiftOut, ShiftHigh
-from stp_database.models.STP.employee import Employee
+from stp_database.models.Shedule import Shift
 from stp_database.repo.base import BaseRepo
 
 
 class ShiftsRepo(BaseRepo):
     """Репозиторий с функциями для работы со сменами."""
+
+    @staticmethod
+    def _shift_type(item: dict) -> str:
+        return item.get("type") or "other"
+
+    @classmethod
+    def _shift_key_from_values(
+        cls,
+        user_id: int,
+        date_start: datetime,
+        date_end: datetime,
+        shift_type: str | None,
+    ) -> tuple[int, datetime, datetime, str]:
+        return user_id, date_start, date_end, shift_type or "other"
+
+    @classmethod
+    def _shift_key_from_item(cls, item: dict) -> tuple[int, datetime, datetime, str]:
+        return cls._shift_key_from_values(
+            item["user_id"],
+            item["date_start"],
+            item["date_end"],
+            cls._shift_type(item),
+        )
+
+    @classmethod
+    def _shift_key(cls, shift: Shift) -> tuple[int, datetime, datetime, str]:
+        return cls._shift_key_from_values(
+            shift.user_id,
+            shift.date_start,
+            shift.date_end,
+            shift.type,
+        )
+
+    @staticmethod
+    def _deduplicate_items(shifts_list: Sequence[dict]) -> dict[tuple[int, datetime, datetime, str], dict]:
+        items_by_key: dict[tuple[int, datetime, datetime, str], dict] = {}
+
+        for item in shifts_list:
+            items_by_key[ShiftsRepo._shift_key_from_item(item)] = item
+
+        return items_by_key
+
+    @staticmethod
+    def _index_existing(
+        shifts: Sequence[Shift],
+    ) -> tuple[dict[tuple[int, datetime, datetime, str], Shift], list[Shift]]:
+        shifts_by_key: dict[tuple[int, datetime, datetime, str], Shift] = {}
+        duplicates: list[Shift] = []
+
+        for shift in shifts:
+            key = ShiftsRepo._shift_key(shift)
+            if key in shifts_by_key:
+                duplicates.append(shift)
+                continue
+
+            shifts_by_key[key] = shift
+
+        return shifts_by_key, duplicates
+
+    async def _get_existing_by_period(
+        self,
+        date_start: datetime,
+        date_end: datetime,
+        user_ids: set[int],
+    ) -> list[Shift]:
+        stmt = select(Shift).where(
+            Shift.date_start >= date_start,
+            Shift.date_start <= date_end,
+        )
+
+        if user_ids:
+            stmt = stmt.where(Shift.user_id.in_(user_ids))
+
+        result = await self.session.execute(stmt)
+        return list(result.scalars().all())
 
     async def add_shift(
         self,
@@ -23,26 +96,36 @@ class ShiftsRepo(BaseRepo):
         type: str | None = "other",
         comment: str | None = None,
     ) -> Shift:
-        """Добавление новой смены.
+        """Добавление или обновление смены."""
 
-        Args:
-            user_id: Уникальный ID пользователя которому принадлежит смена
-            date_start: дата начала
-            date_end: дата окончания
-            type: тип смены: основная, доп.смена, отработка
-            comment: дополнительный комментарий
+        shift_type = type or "other"
+        stmt = select(Shift).where(
+            Shift.user_id == user_id,
+            Shift.date_start == date_start,
+            Shift.date_end == date_end,
+            Shift.type == shift_type,
+        )
 
-        Returns:
-             Объект созданной Shift
-        """
-        shift_uuid = str(uuid.uuid4())
+        result = await self.session.execute(stmt)
+        existing_shifts = list(result.scalars().all())
+
+        if existing_shifts:
+            shift = existing_shifts[0]
+            shift.comment = comment
+
+            for duplicate in existing_shifts[1:]:
+                await self.session.delete(duplicate)
+
+            await self.session.commit()
+            await self.session.refresh(shift)
+            return shift
 
         shift = Shift(
-            uuid=shift_uuid,
+            uuid=str(uuid.uuid4()),
             user_id=user_id,
             date_start=date_start,
             date_end=date_end,
-            type=type,
+            type=shift_type,
             comment=comment,
         )
 
@@ -55,39 +138,118 @@ class ShiftsRepo(BaseRepo):
         self,
         shifts_list: Sequence[dict],
     ) -> list[Shift]:
-        """
-        Добавление пачки смен.
+        """Добавление пачки смен без создания дублей."""
 
-        shifts_list пример:
-        [
-            {
-                "user_id": 1,
-                "date_start": datetime(...),
-                "date_end": datetime(...),
-                "type": "base",
-                "comment": "..."
-            }
-        ]
-        """
+        items_by_key = self._deduplicate_items(shifts_list)
+        if not items_by_key:
+            return []
 
-        shifts = [
-            Shift(
-                user_id=item["user_id"],
-                date_start=item["date_start"],
-                date_end=item["date_end"],
-                type=item.get("type", "other"),
-                comment=item.get("comment"),
-            )
-            for item in shifts_list
-        ]
+        items = list(items_by_key.values())
+        user_ids = {item["user_id"] for item in items}
+        period_start = min(item["date_start"] for item in items)
+        period_end = max(item["date_start"] for item in items)
 
-        self.session.add_all(shifts)
+        existing = await self._get_existing_by_period(period_start, period_end, user_ids)
+        existing_by_key, duplicates = self._index_existing(existing)
+
+        for duplicate in duplicates:
+            await self.session.delete(duplicate)
+
+        shifts: list[Shift] = []
+        for key, item in items_by_key.items():
+            shift = existing_by_key.get(key)
+
+            if shift is None:
+                shift = Shift(
+                    user_id=item["user_id"],
+                    date_start=item["date_start"],
+                    date_end=item["date_end"],
+                    type=self._shift_type(item),
+                    comment=item.get("comment"),
+                )
+                self.session.add(shift)
+            else:
+                shift.comment = item.get("comment")
+
+            shifts.append(shift)
+
         await self.session.commit()
 
         for shift in shifts:
             await self.session.refresh(shift)
 
         return shifts
+
+    async def sync_shifts_by_period(
+        self,
+        shifts_list: Sequence[dict],
+        date_start: datetime | None = None,
+        date_end: datetime | None = None,
+        user_ids: Sequence[int] | None = None,
+    ) -> dict[str, int]:
+        """Синхронизировать смены за период с новым графиком.
+
+        Метод создаёт новые смены, обновляет найденные по естественному ключу
+        и удаляет старые записи за этот же период/сотрудников, которых нет в новой загрузке.
+        """
+
+        stats = {"created": 0, "updated": 0, "deleted": 0, "unchanged": 0}
+        items_by_key = self._deduplicate_items(shifts_list)
+        items = list(items_by_key.values())
+
+        target_user_ids = set(user_ids or [item["user_id"] for item in items])
+        if not target_user_ids:
+            return stats
+
+        if date_start is None:
+            if not items:
+                return stats
+            date_start = min(item["date_start"] for item in items)
+
+        if date_end is None:
+            if not items:
+                return stats
+            date_end = max(item["date_start"] for item in items)
+
+        existing = await self._get_existing_by_period(date_start, date_end, target_user_ids)
+        existing_by_key, duplicates = self._index_existing(existing)
+
+        for duplicate in duplicates:
+            await self.session.delete(duplicate)
+            stats["deleted"] += 1
+
+        for key, item in items_by_key.items():
+            if key[0] not in target_user_ids:
+                continue
+
+            shift = existing_by_key.get(key)
+            if shift is None:
+                shift = Shift(
+                    user_id=item["user_id"],
+                    date_start=item["date_start"],
+                    date_end=item["date_end"],
+                    type=self._shift_type(item),
+                    comment=item.get("comment"),
+                )
+                self.session.add(shift)
+                stats["created"] += 1
+                continue
+
+            new_comment = item.get("comment")
+            if shift.comment != new_comment:
+                shift.comment = new_comment
+                stats["updated"] += 1
+            else:
+                stats["unchanged"] += 1
+
+        incoming_keys = {key for key in items_by_key if key[0] in target_user_ids}
+        for key, shift in existing_by_key.items():
+            if key not in incoming_keys:
+                await self.session.delete(shift)
+                stats["deleted"] += 1
+
+        await self.session.commit()
+        return stats
 
     async def get_shifts_by_period(
         self,
