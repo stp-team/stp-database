@@ -22,26 +22,23 @@ class ShiftsRepo(BaseRepo):
         cls,
         user_id: int,
         date_start: datetime,
-        date_end: datetime,
         shift_type: str | None,
-    ) -> tuple[int, datetime, datetime, str]:
-        return user_id, date_start, date_end, shift_type or "other"
+    ) -> tuple[int, date, str]:
+        return user_id, date_start.date(), shift_type or "other"
 
     @classmethod
-    def _shift_key_from_item(cls, item: dict) -> tuple[int, datetime, datetime, str]:
+    def _shift_key_from_item(cls, item: dict) -> tuple[int, date, str]:
         return cls._shift_key_from_values(
             item["user_id"],
             item["date_start"],
-            item["date_end"],
             cls._shift_type(item),
         )
 
     @classmethod
-    def _shift_key(cls, shift: Shift) -> tuple[int, datetime, datetime, str]:
+    def _shift_key(cls, shift: Shift) -> tuple[int, date, str]:
         return cls._shift_key_from_values(
             shift.user_id,
             shift.date_start,
-            shift.date_end,
             shift.type,
         )
 
@@ -88,6 +85,8 @@ class ShiftsRepo(BaseRepo):
         result = await self.session.execute(stmt)
         return list(result.scalars().all())
 
+
+    # В начале ищет есть ли смена (поиск только по дате из date_start без времени) если смена есть то обновить время, если оно отличается. Если смены нет то добавить
     async def add_shift(
         self,
         user_id: int,
@@ -134,6 +133,7 @@ class ShiftsRepo(BaseRepo):
         await self.session.refresh(shift)
         return shift
 
+    # В начале ищет есть ли смена (поиск только по дате из date_start без времени) если смена есть то обновить время, если оно отличается. Если смены нет то добавить
     async def add_shifts_batch(
         self,
         shifts_list: Sequence[dict],
@@ -235,8 +235,16 @@ class ShiftsRepo(BaseRepo):
                 stats["created"] += 1
                 continue
 
+            new_date_start = item["date_start"]
+            new_date_end = item.get("date_end")
             new_comment = item.get("comment")
-            if shift.comment != new_comment:
+
+            if (shift.date_start != new_date_start
+                or shift.date_end != new_date_end
+                or shift.comment != new_comment
+            ):
+                shift.date_start = new_date_start
+                shift.date_end = new_date_end
                 shift.comment = new_comment
                 stats["updated"] += 1
             else:

@@ -22,32 +22,29 @@ class ShiftsHighRepo(BaseRepo):
         cls,
         user_id: int,
         date_start: datetime,
-        date_end: datetime,
         highshift_type: str | None,
-    ) -> tuple[int, datetime, datetime, str]:
-        return user_id, date_start, date_end, highshift_type or "other"
+    ) -> tuple[int, date, str]:
+        return user_id, date_start.date(), highshift_type or "other"
 
     @classmethod
-    def _highshift_key_from_item(cls, item: dict) -> tuple[int, datetime, datetime, str]:
+    def _highshift_key_from_item(cls, item: dict) -> tuple[int, date, str]:
         return cls._highshift_key_from_values(
             item["user_id"],
             item["date_start"],
-            item["date_end"],
             cls._highshift_type(item),
         )
 
     @classmethod
-    def _highshift_key(cls, highshift: ShiftHigh) -> tuple[int, datetime, datetime, str]:
+    def _highshift_key(cls, highshift: ShiftHigh) -> tuple[int, date, str]:
         return cls._highshift_key_from_values(
             highshift.user_id,
             highshift.date_start,
-            highshift.date_end,
             highshift.type,
         )
 
     @staticmethod
-    def _deduplicate_items(highshifts_list: Sequence[dict]) -> dict[tuple[int, datetime, datetime, str], dict]:
-        items_by_key: dict[tuple[int, datetime, datetime, str], dict] = {}
+    def _deduplicate_items(highshifts_list: Sequence[dict]) -> dict[tuple[int, date, str], dict]:
+        items_by_key: dict[tuple[int, date, str], dict] = {}
 
         for item in highshifts_list:
             items_by_key[ShiftsHighRepo._highshift_key_from_item(item)] = item
@@ -57,8 +54,8 @@ class ShiftsHighRepo(BaseRepo):
     @staticmethod
     def _index_existing(
         highshifts: Sequence[ShiftHigh],
-    ) -> tuple[dict[tuple[int, datetime, datetime, str], ShiftHigh], list[ShiftHigh]]:
-        highshifts_by_key: dict[tuple[int, datetime, datetime, str], ShiftHigh] = {}
+    ) -> tuple[dict[tuple[int, date, str], ShiftHigh], list[ShiftHigh]]:
+        highshifts_by_key: dict[tuple[int, date, str], ShiftHigh] = {}
         duplicates: list[ShiftHigh] = []
 
         for highshift in highshifts:
@@ -231,8 +228,17 @@ class ShiftsHighRepo(BaseRepo):
                 stats["created"] += 1
                 continue
 
+            new_date_start = item["date_start"]
+            new_date_end = item.get("date_end")
             new_comment = item.get("comment")
-            if highshift.comment != new_comment:
+
+            if (
+                    highshift.date_start != new_date_start
+                    or highshift.date_end != new_date_end
+                    or highshift.comment != new_comment
+            ):
+                highshift.date_start = new_date_start
+                highshift.date_end = new_date_end
                 highshift.comment = new_comment
                 stats["updated"] += 1
             else:
