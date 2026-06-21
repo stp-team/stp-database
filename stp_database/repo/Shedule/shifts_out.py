@@ -19,15 +19,18 @@ class ShiftsOutRepo(BaseRepo):
 
     @classmethod
     def _outshift_key_from_values(
-        cls,
-        user_id: int,
-        outshift_date: date | datetime,
-        outshift_type: str | None,
-    ) -> tuple[int, date | datetime, str]:
+            cls,
+            user_id: int,
+            outshift_date: date | datetime,
+            outshift_type: str | None,
+    ) -> tuple[int, date, str]:
+        if isinstance(outshift_date, datetime):
+            outshift_date = outshift_date.date()
+
         return user_id, outshift_date, outshift_type or "other"
 
     @classmethod
-    def _outshift_key_from_item(cls, item: dict) -> tuple[int, date | datetime, str]:
+    def _outshift_key_from_item(cls, item: dict) -> tuple[int, date, str]:
         return cls._outshift_key_from_values(
             item["user_id"],
             item["date"],
@@ -35,7 +38,7 @@ class ShiftsOutRepo(BaseRepo):
         )
 
     @classmethod
-    def _outshift_key(cls, outshift: ShiftOut) -> tuple[int, date | datetime, str]:
+    def _outshift_key(cls, outshift: ShiftOut) -> tuple[int, date, str]:
         return cls._outshift_key_from_values(
             outshift.user_id,
             outshift.date,
@@ -43,8 +46,8 @@ class ShiftsOutRepo(BaseRepo):
         )
 
     @staticmethod
-    def _deduplicate_items(outshifts_list: Sequence[dict]) -> dict[tuple[int, date | datetime, str], dict]:
-        items_by_key: dict[tuple[int, date | datetime, str], dict] = {}
+    def _deduplicate_items(outshifts_list: Sequence[dict]) -> dict[tuple[int, date, str], dict]:
+        items_by_key: dict[tuple[int, date, str], dict] = {}
 
         for item in outshifts_list:
             items_by_key[ShiftsOutRepo._outshift_key_from_item(item)] = item
@@ -53,9 +56,9 @@ class ShiftsOutRepo(BaseRepo):
 
     @staticmethod
     def _index_existing(
-        outshifts: Sequence[ShiftOut],
-    ) -> tuple[dict[tuple[int, date | datetime, str], ShiftOut], list[ShiftOut]]:
-        outshifts_by_key: dict[tuple[int, date | datetime, str], ShiftOut] = {}
+            outshifts: Sequence[ShiftOut],
+    ) -> tuple[dict[tuple[int, date, str], ShiftOut], list[ShiftOut]]:
+        outshifts_by_key: dict[tuple[int, date, str], ShiftOut] = {}
         duplicates: list[ShiftOut] = []
 
         for outshift in outshifts:
