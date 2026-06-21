@@ -31,6 +31,7 @@ class Shift(Base):
     uuid: Mapped[str] = mapped_column(
         Unicode(36),
         unique=True,
+        primary_key=True,
         nullable=False,
         default=generate_uuid,
         comment="Уникальный ID смены"
