@@ -261,12 +261,14 @@ class PurchaseRepo(BaseRepo):
             .where(Purchase.status == "review", Product.manager_role == manager_role)
         )
 
-        # Добавляем фильтр по division если указан
-        if division:
+        # Для РГ role=2 дополнительно ограничиваем заявки division предмета.
+        # То есть РГ НТП видит только предметы Product.division == "НТП",
+        # РГ НЦК видит только предметы Product.division == "НЦК".
+        if manager_role == 2 and division:
             if isinstance(division, list):
-                select_stmt = select_stmt.where(Employee.division.in_(division))
+                select_stmt = select_stmt.where(Product.division.in_(division))
             else:
-                select_stmt = select_stmt.where(Employee.division == division)
+                select_stmt = select_stmt.where(Product.division == division)
 
         select_stmt = select_stmt.order_by(
             Purchase.bought_at.asc()
