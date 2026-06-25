@@ -66,3 +66,14 @@ class GameCenterGamesRepo(BaseRepo):
             logger.error(f"[GameCenter] Ошибка получения индивидуального шанса {game_uuid}: {e}"
                          f"game_uuid={game_uuid}, user_id={user_id}: {e}")
             return None
+
+    async def get_games(self) -> Sequence[GameList]:
+        """Получение всех игр GameCenter."""
+        try:
+            result = await self.session.execute(
+                select(GameList).order_by(GameList.title)
+            )
+            return result.scalars().all()
+        except SQLAlchemyError as e:
+            logger.error(f"[GameCenter] Ошибка получения списка игр: {e}")
+            return []
