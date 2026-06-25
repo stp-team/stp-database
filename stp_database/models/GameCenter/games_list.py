@@ -53,7 +53,7 @@ class GameList(Base):
         comment="Максимальная ставка",
     )
 
-    val_max_daily_used: Mapped[int] = mapped_column(
+    val_max_daily_usage: Mapped[int] = mapped_column(
         Integer,
         nullable=False,
         default=1,
