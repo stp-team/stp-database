@@ -16,9 +16,6 @@ from stp_database.repo.STP.group_member import GroupMemberRepo
 from stp_database.repo.STP.product import ProductsRepo
 from stp_database.repo.STP.purchase import PurchaseRepo
 from stp_database.repo.STP.transactions import TransactionRepo
-from stp_database.repo.Note.note import NoteRepo
-from stp_database.repo.Note.space import SpaceRepo
-
 
 @dataclass
 class MainRequestsRepo:
@@ -88,13 +85,3 @@ class MainRequestsRepo:
     def event_log(self) -> EventLogRepo:
         """Инициализация репозитория EventLogRepo с сессией для работы с логами ивентов."""
         return EventLogRepo(self.session)
-
-    @property
-    def space(self) -> SpaceRepo:
-        """Инициализация SpaceRepo с сессией для работы с пространствами."""
-        return SpaceRepo(self.session)
-
-    @property
-    def note(self) -> NoteRepo:
-        """Инициализация NoteRepo с сессией для работы со статьями."""
-        return NoteRepo(self.session)
