@@ -11,6 +11,9 @@ from .group_member import GroupMember
 from .product import Product
 from .purchase import Purchase
 from .transactions import Transaction
+from .note import Note
+from .space import Space, SpaceType, SpaceVisibility
+from .space_participant import SpaceParticipant, SpaceParticipantRole
 
 __all__ = [
     "EventLog",
@@ -25,4 +28,10 @@ __all__ = [
     "Product",
     "Purchase",
     "Transaction",
+    "Space",
+    "SpaceType",
+    "SpaceVisibility",
+    "SpaceParticipant",
+    "SpaceParticipantRole",
+    "Note",
 ]
