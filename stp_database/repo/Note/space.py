@@ -40,7 +40,7 @@ class SpaceRepo(BaseRepo):
             user_id=user_id,
             space_uuid=uuid,
             role=SpaceParticipantRole.owner,
-            can_notify=True,
+            can_notificate=True,
             accession_by=user_id,
         )
 
@@ -207,7 +207,7 @@ class SpaceRepo(BaseRepo):
             user_id=user_id,
             space_uuid=space_uuid,
             role=role,
-            can_notify=False,
+            can_notificate=False,
             accession_by=real_accession_by,
         )
 
@@ -246,7 +246,7 @@ class SpaceRepo(BaseRepo):
         self,
         space_uuid: str,
         user_id: int,
-        can_notify: bool,
+        can_notificate: bool,
     ) -> SpaceParticipant | None:
         """Включить или выключить уведомления."""
 
@@ -255,7 +255,7 @@ class SpaceRepo(BaseRepo):
         if not participant:
             return None
 
-        participant.can_notify = can_notify
+        participant.can_notificate = can_notificate
 
         try:
             await self.session.commit()

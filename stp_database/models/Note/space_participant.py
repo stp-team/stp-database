@@ -42,7 +42,7 @@ class SpaceParticipant(Base):
         default=SpaceParticipantRole.viewer,
     )
 
-    can_notify: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    can_notificate: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
     accession_by: Mapped[int] = mapped_column(BIGINT, nullable=True)
 
