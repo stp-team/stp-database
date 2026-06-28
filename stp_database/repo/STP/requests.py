@@ -16,8 +16,8 @@ from stp_database.repo.STP.group_member import GroupMemberRepo
 from stp_database.repo.STP.product import ProductsRepo
 from stp_database.repo.STP.purchase import PurchaseRepo
 from stp_database.repo.STP.transactions import TransactionRepo
-from stp_database.repo.STP.note import NoteRepo
-from stp_database.repo.STP.space import SpaceRepo
+from stp_database.repo.Note.note import NoteRepo
+from stp_database.repo.Note.space import SpaceRepo
 
 
 @dataclass

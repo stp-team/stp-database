@@ -7,7 +7,7 @@ from typing import Sequence
 from sqlalchemy import or_, select
 from sqlalchemy.exc import SQLAlchemyError
 
-from stp_database.models.STP.note import Note
+from stp_database.models.Note.note import Note
 from stp_database.repo.base import BaseRepo
 
 logger = logging.getLogger(__name__)

@@ -6,8 +6,8 @@ from typing import Sequence
 from sqlalchemy import and_, or_, select
 from sqlalchemy.exc import SQLAlchemyError
 
-from stp_database.models.STP.space import Space, SpaceType, SpaceVisibility
-from stp_database.models.STP.space_participant import SpaceParticipant, SpaceParticipantRole
+from stp_database.models.Note.space import Space, SpaceType, SpaceVisibility
+from stp_database.models.Note.space_participant import SpaceParticipant, SpaceParticipantRole
 from stp_database.repo.base import BaseRepo
 
 logger = logging.getLogger(__name__)
