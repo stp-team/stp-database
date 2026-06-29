@@ -308,7 +308,7 @@ class SpaceRepo(BaseRepo):
     async def get_user_spaces(
             self,
             user_id: int,
-            can_notify_only: bool = False,
+            can_notificate_only: bool = False,
             limit: int = 100,
     ) -> list[tuple[Space, SpaceParticipant | None]]:
         """Получить пространства пользователя
@@ -326,7 +326,7 @@ class SpaceRepo(BaseRepo):
             SpaceParticipant.user_id == user_id,
         ]
 
-        if can_notify_only:
+        if can_notificate_only:
             join_conditions.append(SpaceParticipant.can_notificate.is_(True))
 
         query = (
