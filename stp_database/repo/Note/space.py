@@ -5,7 +5,9 @@ from typing import Sequence
 
 from sqlalchemy import and_, or_, select
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.sql.util import join_condition
 
+from stp_database.models.Note import space
 from stp_database.models.Note.space import Space, SpaceType, SpaceVisibility
 from stp_database.models.Note.space_participant import SpaceParticipant, SpaceParticipantRole
 from stp_database.repo.base import BaseRepo
@@ -301,4 +303,56 @@ class SpaceRepo(BaseRepo):
             return result.scalars().all()
         except SQLAlchemyError as e:
             logger.error(f"[БД] Ошибка получения списка пространств: {e}")
+            return []
+
+    async def get_user_spaces(
+            self,
+            user_id: int,
+            can_notify_only: bool = False,
+            limit: int = 100,
+    ) -> list[tuple[Space, SpaceParticipant | None]]:
+        """Получить пространства пользователя
+
+        Возвращает:
+            Пространства, где пользователь владелец
+            Пространства, где пользователь участник
+
+        Если can_notify_only=True, то из чужих пространств вернутся только те
+        где у пользователя can_notify=True.
+        """
+
+        join_conditions = [
+            SpaceParticipant.space_uuid == Space.uuid,
+            SpaceParticipant.user_id == user_id,
+        ]
+
+        if can_notify_only:
+            join_conditions.append(SpaceParticipant.can_notificate.is_(True))
+
+        query = (
+            select(Space, SpaceParticipant)
+            .outerjoin(
+                SpaceParticipant,
+                and_(*join_conditions),
+            )
+            .where(
+                or_(
+                    Space.owned_by == user_id,
+                    SpaceParticipant.user_id == user_id,
+                )
+            )
+            .order_by(Space.created_at.desc())
+            .limit(limit)
+        )
+
+        try:
+            result = await self.session.execute(query)
+            rows = result.all()
+
+            return [
+                (space, participant)
+                for space, participant in rows
+            ]
+        except SQLAlchemyError as e:
+            logger.error(f"[БД] Ошибка получения пространств пользователя {user_id}: {e}")
             return []
