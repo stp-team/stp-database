@@ -356,3 +356,152 @@ class SpaceRepo(BaseRepo):
         except SQLAlchemyError as e:
             logger.error(f"[БД] Ошибка получения пространств пользователя {user_id}: {e}")
             return []
+
+    async def get_space_participants(
+            self,
+            space_uuid: str,
+            role: SpaceParticipantRole | None = None,
+            can_notificate: bool | None = None,
+            limit: int = 100,
+    ) -> Sequence[SpaceParticipant]:
+        """Получить участников пространства."""
+
+        filters = [
+            SpaceParticipant.space_uuid == space_uuid,
+        ]
+
+        if role:
+            filters.append(SpaceParticipant.role == role)
+
+        if can_notificate is not None:
+            filters.append(SpaceParticipant.can_notificate == can_notificate)
+
+        query = (
+            select(SpaceParticipant)
+            .where(*filters)
+            .order_by(SpaceParticipant.accession_at.desc())
+            .limit(limit)
+        )
+
+        try:
+            result = await self.session.execute(query)
+            return result.scalars().all()
+        except SQLAlchemyError as e:
+            logger.error(f"[БД] Ошибка получения участников пространства {space_uuid}: {e}")
+            return []
+
+    async def add_user_to_space(
+            self,
+            space_uuid: str,
+            user_id: int,
+            role: SpaceParticipantRole = SpaceParticipantRole.viewer,
+            accession_by: int | None = None,
+            can_notificate: bool = False,
+    ) -> SpaceParticipant | None:
+        """Добавить пользователя в пространство.
+
+        Если пользователь уже есть в пространстве, обновляем роль и can_notificate.
+        """
+
+        space = await self.get_space(uuid=space_uuid)
+
+        if not space:
+            return None
+
+        current = await self.get_participant(
+            space_uuid=space_uuid,
+            user_id=user_id,
+        )
+
+        real_accession_by = accession_by if accession_by is not None else user_id
+
+        if current:
+            current.role = role
+            current.can_notificate = can_notificate
+
+            try:
+                await self.session.commit()
+                await self.session.refresh(current)
+                return current
+            except SQLAlchemyError as e:
+                logger.error(f"[БД] Ошибка обновления участника пространства {space_uuid}: {e}")
+                await self.session.rollback()
+                return None
+
+        participant = SpaceParticipant(
+            user_id=user_id,
+            space_uuid=space_uuid,
+            role=role,
+            can_notificate=can_notificate,
+            accession_by=real_accession_by,
+        )
+
+        try:
+            self.session.add(participant)
+            await self.session.commit()
+            await self.session.refresh(participant)
+            return participant
+        except SQLAlchemyError as e:
+            logger.error(f"[БД] Ошибка добавления пользователя {user_id} в пространство {space_uuid}: {e}")
+            await self.session.rollback()
+            return None
+
+    async def update_participant_role(
+            self,
+            space_uuid: str,
+            user_id: int,
+            role: SpaceParticipantRole,
+    ) -> SpaceParticipant | None:
+        """Сменить роль участника пространства."""
+
+        participant = await self.get_participant(
+            space_uuid=space_uuid,
+            user_id=user_id,
+        )
+
+        if not participant:
+            return None
+
+        participant.role = role
+
+        try:
+            await self.session.commit()
+            await self.session.refresh(participant)
+            return participant
+        except SQLAlchemyError as e:
+            logger.error(f"[БД] Ошибка смены роли пользователя {user_id} в пространстве {space_uuid}: {e}")
+            await self.session.rollback()
+            return None
+
+    async def remove_user_from_space(
+            self,
+            space_uuid: str,
+            user_id: int,
+    ) -> bool:
+        """Удалить пользователя из пространства."""
+
+        space = await self.get_space(uuid=space_uuid)
+
+        if not space:
+            return False
+
+        # Нельзя удалить владельца пространства.
+        if int(space.owned_by) == int(user_id):
+            return False
+
+        participant = await self.get_participant(
+            space_uuid=space_uuid,
+            user_id=user_id,
+        )
+
+        if not participant:
+            return False
+
+        try:
+            await self.session.delete(participant)
+            await self.session.commit()
+            return True
+        except SQLAlchemyError as e:
+            logger.error(f"[БД] Ошибка удаления пользователя {user_id} из пространства {space_uuid}: {e}")
+            await self.session.rollback()
+            return False
