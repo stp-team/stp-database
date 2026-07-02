@@ -15,6 +15,7 @@ class SpaceParticipantRole(str, Enum):
     editor = "editor"
     admin = "admin"
     owner = "owner"
+    joinrequest = "joinrequest"
 
 class SpaceParticipant(Base):
     """Участник пространства."""
