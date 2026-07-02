@@ -324,6 +324,7 @@ class SpaceRepo(BaseRepo):
         join_conditions = [
             SpaceParticipant.space_uuid == Space.uuid,
             SpaceParticipant.user_id == user_id,
+            SpaceParticipant.role != SpaceParticipantRole.joinrequest,
         ]
 
         if can_notificate_only:
