@@ -35,7 +35,7 @@ class AchievementsRepo(BaseRepo):
             description=description,
             divisions=divisions,
             positions=positions,
-            preiod=period,
+            period=period,
             reward=reward,
             rule_expression=rule_expression,
             created_by=created_by,
