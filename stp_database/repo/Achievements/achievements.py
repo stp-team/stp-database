@@ -29,6 +29,28 @@ class AchievementsRepo(BaseRepo):
 
         return result.scalars().all()
 
+    async def get_achievement_by_uuid(
+            self,
+            achievement_uuid: str,
+    ) -> Achievements | None:
+        """
+        Получить достижение по UUID.
+
+        Args:
+            achievement_uuid: UUID достижения.
+
+        Returns:
+            Достижение или None, если запись не найдена.
+        """
+
+        stmt = select(Achievements).where(
+            Achievements.uuid == achievement_uuid
+        )
+
+        result = await self.session.execute(stmt)
+
+        return result.scalar_one_or_none()
+
     async def create_achievement(
             self,
             uuid: str,
