@@ -22,7 +22,6 @@ class Achievements(Base):
     uuid: Mapped[str] = mapped_column(
         String(250),
         unique=True,
-        primary_key=True,
         comment="Уникальный идентификатор достижения"
     )
 
