@@ -26,7 +26,7 @@ class AchievementsRepo(BaseRepo):
             rules: str | None = None,
             created_by: int | None = None,
     ) -> None:
-        achivement = Achievements(
+        achievement = Achievements(
             name=name,
             description=description,
             divisions=divisions,
@@ -36,10 +36,10 @@ class AchievementsRepo(BaseRepo):
         )
 
         try:
-            self.session.add(achivement)
+            self.session.add(achievement)
             await self.session.commit()
-            await self.session.refresh(achivement)
-            return achivement
+            await self.session.refresh(achievement)
+            return achievement
         except SQLAlchemyError as e:
             logger.error(f"[БД] Ошибка создания достижения: {e}")
             await self.session.rollback()
