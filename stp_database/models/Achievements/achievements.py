@@ -46,6 +46,12 @@ class Achievements(Base):
         nullable=False,
         comment="Список должностей которые могут получить это достижение"
     )
+    reward: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        default=1,
+        comment="Награда",
+    )
     rule_expression: Mapped[str] = mapped_column(
         LONGTEXT,
         nullable=False,

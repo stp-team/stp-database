@@ -23,6 +23,7 @@ class AchievementsRepo(BaseRepo):
             description: str | None = "Новое достижение",
             divisions: list[str] | None = None,
             positions: list[str] | None = None,
+            reward: int | None = None,
             rule_expression: str | None = None,
             created_by: int | None = None,
     ) -> None:
@@ -31,6 +32,7 @@ class AchievementsRepo(BaseRepo):
             description=description,
             divisions=divisions,
             positions=positions,
+            reward=reward,
             rule_expression=rule_expression,
             created_by=created_by,
         )
