@@ -8,7 +8,7 @@ from stp_database.repo.Achievements import AchievementsRepo
 
 
 @dataclass
-class NoteRequestsRepo:
+class AchievementsRequestsRepo:
     """Репозиторий для обработки операций с БД Achievements."""
 
     session: AsyncSession
