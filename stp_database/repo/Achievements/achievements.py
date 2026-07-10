@@ -19,6 +19,7 @@ class AchievementsRepo(BaseRepo):
 
     async def create_achievement(
             self,
+            uuid: str | None = None,
             name: str | None = "Новое достижение",
             description: str | None = "Новое достижение",
             divisions: list[str] | None = None,
@@ -28,6 +29,7 @@ class AchievementsRepo(BaseRepo):
             created_by: int | None = None,
     ) -> None:
         achievement = Achievements(
+            uuid=uuid,
             name=name,
             description=description,
             divisions=divisions,
