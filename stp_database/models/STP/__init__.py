@@ -1,6 +1,5 @@
 """Инициализация моделей STP."""
 
-from .achievement import Achievement
 from .broadcast import Broadcast
 from .employee import Employee
 from .event_log import EventLog
@@ -14,7 +13,6 @@ from .transactions import Transaction
 
 __all__ = [
     "EventLog",
-    "Achievement",
     "Broadcast",
     "Employee",
     "Exchange",
