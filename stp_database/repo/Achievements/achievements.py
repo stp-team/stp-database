@@ -24,6 +24,7 @@ class AchievementsRepo(BaseRepo):
             description: str | None = "Новое достижение",
             divisions: list[str] | None = None,
             positions: list[str] | None = None,
+            period: str | None = None,
             reward: int | None = None,
             rule_expression: str | None = None,
             created_by: int | None = None,
