@@ -5,7 +5,7 @@ from typing import Any, Sequence
 from datetime import datetime
 from typing import Sequence
 
-from sqlalchemy import or_, select
+from sqlalchemy import or_, delete, select
 from sqlalchemy.exc import SQLAlchemyError
 
 from stp_database.models.Achievements import Achievements
@@ -16,6 +16,18 @@ logger = logging.getLogger(__name__)
 
 class AchievementsRepo(BaseRepo):
     """Репозиторий для работы со списком достижений."""
+
+    async def get_achievements(self) -> Sequence[Achievements]:
+        """Получить список всех достижений."""
+
+        stmt = (
+            select(Achievements)
+            .order_by(Achievements.created_at.desc())
+        )
+
+        result = await self.session.execute(stmt)
+
+        return result.scalars().all()
 
     async def create_achievement(
             self,
@@ -53,26 +65,105 @@ class AchievementsRepo(BaseRepo):
 
     async def update_achievement(
             self,
-            achievement_uuid: int,
-            **kwargs: Any,
+            achievement_uuid: str,
+            **changes: Any,
     ) -> Achievements | None:
-        """Обновление достижения.
+        """
+        Обновить достижение по UUID.
 
-        Args:
-            achievement_uuid: Идентификатор достижения
+        Необходимо передать минимум одно изменяемое поле.
 
         Returns:
-            Обновленный объект Achievements или None
+            Обновлённое достижение или None, если запись не найдена.
+
+        Raises:
+            ValueError: Если поля обновления не переданы или передано
+                недопустимое поле.
         """
-        select_stmt = select(Achievements).where(Achievements.uuid == achievement_uuid)
 
-        result = await self.session.execute(select_stmt)
-        achievement: Achievements | None = result.scalar_one_or_none()
+        if not changes:
+            raise ValueError(
+                "Необходимо передать минимум одно поле для обновления"
+            )
 
-        # Если достижение существует - обновляем его
-        if achievement:
-            for key, value in kwargs.items():
-                setattr(achievement, key, value)
+        allowed_fields = {
+            "name",
+            "description",
+            "divisions",
+            "positions",
+            "period",
+            "reward",
+            "rule_expression",
+            "updated_by",
+        }
+
+        invalid_fields = set(changes) - allowed_fields
+
+        if invalid_fields:
+            raise ValueError(
+                "Недопустимые поля для обновления: "
+                + ", ".join(sorted(invalid_fields))
+            )
+
+        stmt = select(Achievements).where(
+            Achievements.uuid == achievement_uuid
+        )
+
+        result = await self.session.execute(stmt)
+        achievement = result.scalar_one_or_none()
+
+        if achievement is None:
+            return None
+
+        for field, value in changes.items():
+            setattr(achievement, field, value)
+
+        achievement.updated_at = datetime.now()
+
+        try:
             await self.session.commit()
+            await self.session.refresh(achievement)
+            return achievement
 
-        return achievement
+        except SQLAlchemyError:
+            await self.session.rollback()
+            logger.exception(
+                "[БД] Ошибка обновления достижения %s",
+                achievement_uuid,
+            )
+            raise
+
+    async def delete_achievement(
+            self,
+            achievement_uuid: str,
+    ) -> bool:
+        """
+        Удалить достижение по UUID.
+
+        Returns:
+            True, если достижение удалено.
+            False, если достижение не найдено.
+        """
+
+        stmt = (
+            delete(Achievements)
+            .where(Achievements.uuid == achievement_uuid)
+        )
+
+        try:
+            result = await self.session.execute(stmt)
+
+            if result.rowcount == 0:
+                await self.session.rollback()
+                return False
+
+            await self.session.commit()
+            return True
+
+        except SQLAlchemyError:
+            await self.session.rollback()
+            logger.exception(
+                "[БД] Ошибка удаления достижения %s",
+                achievement_uuid,
+            )
+            raise
