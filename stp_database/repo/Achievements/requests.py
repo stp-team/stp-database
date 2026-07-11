@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from stp_database.repo.Achievements import AchievementsRepo
+from stp_database.repo.Achievements import LogAchievementsRepo
 
 
 @dataclass
@@ -16,3 +17,7 @@ class AchievementsRequestsRepo:
     @property
     def space(self) -> AchievementsRepo:
         return AchievementsRepo(self.session)
+
+    @property
+    def space(self) -> LogAchievementsRepo:
+        return LogAchievementsRepo(self.session)
