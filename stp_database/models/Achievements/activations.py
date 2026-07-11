@@ -42,10 +42,11 @@ class Activations(Base):
         comment="Количество которое подано на активацию"
     )
 
-    comment_user: Mapped[str] = mapped_column(
+    form_data: Mapped[str] = mapped_column(
         LONGTEXT,
-        nullable=True,
-        comment="Комментарий пользователя",
+        nullable=False,
+        default='{}',
+        comment="JSON список заполненных полей формы активации",
     )
 
     status: Mapped[str] = mapped_column(

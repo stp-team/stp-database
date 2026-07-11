@@ -74,6 +74,13 @@ class Awards(Base):
         comment="Правила активации наград",
     )
 
+    activation_form_example: Mapped[str] = mapped_column(
+        LONGTEXT,
+        nullable=False,
+        default='{}',
+        comment="JSON список полей формы активации",
+    )
+
     manager_role: Mapped[int] = mapped_column(
         Integer,
         nullable=False,
