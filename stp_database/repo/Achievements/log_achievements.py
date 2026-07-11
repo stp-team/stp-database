@@ -117,7 +117,7 @@ class LogAchievementsRepo(BaseRepo):
             await self.session.rollback()
 
             logger.exception(
-                "[БД] Ошибка создания лога проверки достижения. "
+                "[БД] Ошибка создания лога проверки достижения."
                 "user_id=%s, achievement_uuid=%s",
                 user_id,
                 achievement_uuid,
