@@ -9,6 +9,7 @@ from uuid import uuid4
 
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy import delete
 
 from stp_database.models.Achievements import LogAchievements
 from stp_database.repo.base import BaseRepo
@@ -20,17 +21,23 @@ class LogAchievementsRepo(BaseRepo):
     """Репозиторий для работы с логами проверки достижений."""
 
     async def create_log(
-        self,
-        user_id: int,
-        achievement_uuid: str,
-        rule_expression: str | Mapping[str, Any],
-        condition_results: Mapping[str, Any],
-        *,
-        log_uuid: str | None = None,
-        checked_at: datetime | None = None,
+            self,
+            user_id: int,
+            achievement_uuid: str,
+            rule_expression: str | Mapping[str, Any],
+            condition_results: Mapping[str, Any],
+            *,
+            log_uuid: str | None = None,
+            checked_at: datetime | None = None,
     ) -> LogAchievements:
         """
         Создать запись лога проверки достижения.
+
+        Если для пары user_id + achievement_uuid уже существуют записи,
+        они удаляются перед созданием новой.
+
+        Удаление старых записей и добавление новой выполняются в рамках
+        одной транзакции.
 
         Args:
             user_id:
@@ -47,75 +54,29 @@ class LogAchievementsRepo(BaseRepo):
                 Дерево результатов проверки, соответствующее структуре
                 rule_expression.
 
-                Для каждого условия ожидаются поля:
+                Для каждого конечного условия ожидаются поля:
 
                 {
                     "checked_value": фактическое_значение,
                     "result": true | false
                 }
 
-                Для вложенных блоков структура должна повторять структуру
-                rule_expression.
+                Вложенность должна повторять структуру rule_expression.
 
             log_uuid:
-                UUID записи лога. Если не передан, генерируется автоматически.
+                UUID новой записи лога. Если не передан, генерируется
+                автоматически.
 
             checked_at:
                 Время проверки. Если не передано, используется серверное
-                значение checked_at модели.
+                значение checked_at из модели.
 
         Returns:
             Созданная запись LogAchievements.
-
-        Example:
-            rule_expression = {
-                "operator": "and",
-                "conditions": [
-                    {
-                        "field": "calls_count",
-                        "operator": ">=",
-                        "value": 100
-                    },
-                    {
-                        "operator": "or",
-                        "conditions": [
-                            {
-                                "field": "quality",
-                                "operator": ">=",
-                                "value": 90
-                            },
-                            {
-                                "field": "sales",
-                                "operator": ">=",
-                                "value": 10
-                            }
-                        ]
-                    }
-                ]
-            }
-
-            condition_results = {
-                "conditions": [
-                    {
-                        "checked_value": 120,
-                        "result": True
-                    },
-                    {
-                        "conditions": [
-                            {
-                                "checked_value": 85,
-                                "result": False
-                            },
-                            {
-                                "checked_value": 12,
-                                "result": True
-                            }
-                        ]
-                    }
-                ]
-            }
         """
-        parsed_rule_expression = self._parse_rule_expression(rule_expression)
+        parsed_rule_expression = self._parse_rule_expression(
+            rule_expression
+        )
 
         check_result = self.build_check_result(
             rule_expression=parsed_rule_expression,
@@ -138,7 +99,15 @@ class LogAchievementsRepo(BaseRepo):
             log.checked_at = checked_at
 
         try:
+            delete_stmt = delete(LogAchievements).where(
+                LogAchievements.user_id == user_id,
+                LogAchievements.achievement_uuid == achievement_uuid,
+            )
+
+            await self.session.execute(delete_stmt)
+
             self.session.add(log)
+
             await self.session.commit()
             await self.session.refresh(log)
 
@@ -146,12 +115,14 @@ class LogAchievementsRepo(BaseRepo):
 
         except SQLAlchemyError:
             await self.session.rollback()
+
             logger.exception(
                 "[БД] Ошибка создания лога проверки достижения. "
                 "user_id=%s, achievement_uuid=%s",
                 user_id,
                 achievement_uuid,
             )
+
             raise
 
     async def get_logs(
