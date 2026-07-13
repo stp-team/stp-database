@@ -17,6 +17,20 @@ logger = logging.getLogger(__name__)
 class AchievementsRepo(BaseRepo):
     """Репозиторий для работы со списком достижений."""
 
+    async def get_achievements_by_period(
+        self,
+        period: str,
+    ) -> Sequence[Achievements]:
+        """Получить достижения для заданного периода."""
+        stmt = (
+            select(Achievements)
+            .where(Achievements.period == period)
+            .order_by(Achievements.created_at.desc())
+        )
+
+        result = await self.session.execute(stmt)
+        return result.scalars().all()
+
     async def get_achievements(self) -> Sequence[Achievements]:
         """Получить список всех достижений."""
 

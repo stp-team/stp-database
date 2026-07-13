@@ -1,23 +1,27 @@
-﻿"""Агрегатор репозиториев AchievementsRepo."""
+﻿"""Агрегатор репозиториев БД достижений."""
 
 from dataclasses import dataclass
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from stp_database.repo.Achievements import AchievementsRepo
-from stp_database.repo.Achievements import LogAchievementsRepo
+from stp_database.repo.Achievements.achievements import AchievementsRepo
+from stp_database.repo.Achievements.log_achievements import (
+    LogAchievementsRepo,
+)
 
 
 @dataclass
 class AchievementsRequestsRepo:
-    """Репозиторий для обработки операций с БД Achievements."""
+    """Репозитории базы данных достижений."""
 
     session: AsyncSession
 
     @property
-    def space(self) -> AchievementsRepo:
+    def achievements(self) -> AchievementsRepo:
+        """Работа со списком достижений."""
         return AchievementsRepo(self.session)
 
     @property
-    def space(self) -> LogAchievementsRepo:
+    def achievement_logs(self) -> LogAchievementsRepo:
+        """Работа с логами расчёта достижений."""
         return LogAchievementsRepo(self.session)

@@ -19,6 +19,53 @@ logger = logging.getLogger(__name__)
 
 class LogAchievementsRepo(BaseRepo):
     """Репозиторий для работы с логами проверки достижений."""
+    async def save_check_result(
+        self,
+        *,
+        user_id: int,
+        achievement_uuid: str,
+        check_result: Mapping[str, Any],
+        log_uuid: str | None = None,
+        checked_at: datetime | None = None,
+    ) -> LogAchievements:
+        """Сохранить готовый результат проверки достижения."""
+        log = LogAchievements(
+            uuid=log_uuid or str(uuid4()),
+            user_id=user_id,
+            achievement_uuid=achievement_uuid,
+            check_result=json.dumps(
+                check_result,
+                ensure_ascii=False,
+                separators=(",", ":"),
+                default=self._json_default,
+            ),
+        )
+
+        if checked_at is not None:
+            log.checked_at = checked_at
+
+        try:
+            delete_stmt = delete(LogAchievements).where(
+                LogAchievements.user_id == user_id,
+                LogAchievements.achievement_uuid == achievement_uuid,
+            )
+
+            await self.session.execute(delete_stmt)
+            self.session.add(log)
+            await self.session.commit()
+            await self.session.refresh(log)
+
+            return log
+
+        except SQLAlchemyError:
+            await self.session.rollback()
+            logger.exception(
+                "[БД] Ошибка сохранения результата проверки достижения. "
+                "user_id=%s, achievement_uuid=%s",
+                user_id,
+                achievement_uuid,
+            )
+            raise
 
     async def create_log(
             self,
