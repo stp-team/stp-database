@@ -45,8 +45,8 @@ class Transaction(Base):
         nullable=False,
         comment="Тип операции: начисление или списание",
     )
-    source_id: Mapped[int | None] = mapped_column(
-        Integer,
+    source_id: Mapped[str | None] = mapped_column(
+        String(255),
         nullable=True,
         comment="Идентификатор достижения или предмета. Для manual или casino — None",
     )

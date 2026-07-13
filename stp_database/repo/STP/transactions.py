@@ -18,7 +18,7 @@ class TransactionParams(TypedDict, total=False):
 
     user_id: int
     type: str
-    source_id: int | None
+    source_id: str | None
     source_type: str
     amount: int
     comment: str | None
@@ -35,7 +35,7 @@ class TransactionRepo(BaseRepo):
         transaction_type: str,
         source_type: str,
         amount: int,
-        source_id: int | None = None,
+        source_id: str | None = None,
         comment: str | None = None,
         created_by: int | None = None,
         kpi_extracted_at: datetime.datetime | None = None,
