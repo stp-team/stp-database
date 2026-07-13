@@ -8,8 +8,8 @@ from typing import Any, Mapping, Sequence
 from uuid import uuid4
 
 from sqlalchemy import select
+from sqlalchemy.dialects.mysql import insert as mysql_insert
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy import delete
 
 from stp_database.models.Achievements import LogAchievements
 from stp_database.repo.base import BaseRepo
@@ -19,6 +19,7 @@ logger = logging.getLogger(__name__)
 
 class LogAchievementsRepo(BaseRepo):
     """Репозиторий для работы с логами проверки достижений."""
+
     async def save_check_result(
         self,
         *,
@@ -28,34 +29,52 @@ class LogAchievementsRepo(BaseRepo):
         log_uuid: str | None = None,
         checked_at: datetime | None = None,
     ) -> LogAchievements:
-        """Сохранить готовый результат проверки достижения."""
-        log = LogAchievements(
-            uuid=log_uuid or str(uuid4()),
-            user_id=user_id,
-            achievement_uuid=achievement_uuid,
-            check_result=json.dumps(
-                check_result,
-                ensure_ascii=False,
-                separators=(",", ":"),
-                default=self._json_default,
-            ),
+        """
+        Сохранить последний результат проверки достижения через MySQL UPSERT.
+
+        Для пары user_id + achievement_uuid:
+        - если записи нет — создаёт новую;
+        - если запись существует — обновляет uuid, check_result и checked_at.
+
+        Для работы UPSERT в таблице должен существовать уникальный индекс
+        по полям user_id и achievement_uuid.
+        """
+        actual_uuid = log_uuid or str(uuid4())
+        actual_checked_at = checked_at or datetime.now()
+
+        serialized_check_result = json.dumps(
+            check_result,
+            ensure_ascii=False,
+            separators=(",", ":"),
+            default=self._json_default,
         )
 
-        if checked_at is not None:
-            log.checked_at = checked_at
+        insert_stmt = mysql_insert(LogAchievements).values(
+            uuid=actual_uuid,
+            user_id=user_id,
+            achievement_uuid=achievement_uuid,
+            check_result=serialized_check_result,
+            checked_at=actual_checked_at,
+        )
+
+        upsert_stmt = insert_stmt.on_duplicate_key_update(
+            uuid=insert_stmt.inserted.uuid,
+            check_result=insert_stmt.inserted.check_result,
+            checked_at=insert_stmt.inserted.checked_at,
+        )
 
         try:
-            delete_stmt = delete(LogAchievements).where(
-                LogAchievements.user_id == user_id,
-                LogAchievements.achievement_uuid == achievement_uuid,
+            await self.session.execute(upsert_stmt)
+            await self.session.commit()
+
+            result = await self.session.execute(
+                select(LogAchievements).where(
+                    LogAchievements.user_id == user_id,
+                    LogAchievements.achievement_uuid == achievement_uuid,
+                )
             )
 
-            await self.session.execute(delete_stmt)
-            self.session.add(log)
-            await self.session.commit()
-            await self.session.refresh(log)
-
-            return log
+            return result.scalar_one()
 
         except SQLAlchemyError:
             await self.session.rollback()
@@ -68,59 +87,16 @@ class LogAchievementsRepo(BaseRepo):
             raise
 
     async def create_log(
-            self,
-            user_id: int,
-            achievement_uuid: str,
-            rule_expression: str | Mapping[str, Any],
-            condition_results: Mapping[str, Any],
-            *,
-            log_uuid: str | None = None,
-            checked_at: datetime | None = None,
+        self,
+        user_id: int,
+        achievement_uuid: str,
+        rule_expression: str | Mapping[str, Any],
+        condition_results: Mapping[str, Any],
+        *,
+        log_uuid: str | None = None,
+        checked_at: datetime | None = None,
     ) -> LogAchievements:
-        """
-        Создать запись лога проверки достижения.
-
-        Если для пары user_id + achievement_uuid уже существуют записи,
-        они удаляются перед созданием новой.
-
-        Удаление старых записей и добавление новой выполняются в рамках
-        одной транзакции.
-
-        Args:
-            user_id:
-                ID проверяемого пользователя.
-
-            achievement_uuid:
-                UUID достижения.
-
-            rule_expression:
-                Исходное дерево правил достижения. Можно передать JSON-строкой
-                либо уже десериализованным словарём.
-
-            condition_results:
-                Дерево результатов проверки, соответствующее структуре
-                rule_expression.
-
-                Для каждого конечного условия ожидаются поля:
-
-                {
-                    "checked_value": фактическое_значение,
-                    "result": true | false
-                }
-
-                Вложенность должна повторять структуру rule_expression.
-
-            log_uuid:
-                UUID новой записи лога. Если не передан, генерируется
-                автоматически.
-
-            checked_at:
-                Время проверки. Если не передано, используется серверное
-                значение checked_at из модели.
-
-        Returns:
-            Созданная запись LogAchievements.
-        """
+        """Создать или обновить лог проверки достижения."""
         parsed_rule_expression = self._parse_rule_expression(
             rule_expression
         )
@@ -130,47 +106,13 @@ class LogAchievementsRepo(BaseRepo):
             condition_results=condition_results,
         )
 
-        log = LogAchievements(
-            uuid=log_uuid or str(uuid4()),
+        return await self.save_check_result(
             user_id=user_id,
             achievement_uuid=achievement_uuid,
-            check_result=json.dumps(
-                check_result,
-                ensure_ascii=False,
-                separators=(",", ":"),
-                default=self._json_default,
-            ),
+            check_result=check_result,
+            log_uuid=log_uuid,
+            checked_at=checked_at,
         )
-
-        if checked_at is not None:
-            log.checked_at = checked_at
-
-        try:
-            delete_stmt = delete(LogAchievements).where(
-                LogAchievements.user_id == user_id,
-                LogAchievements.achievement_uuid == achievement_uuid,
-            )
-
-            await self.session.execute(delete_stmt)
-
-            self.session.add(log)
-
-            await self.session.commit()
-            await self.session.refresh(log)
-
-            return log
-
-        except SQLAlchemyError:
-            await self.session.rollback()
-
-            logger.exception(
-                "[БД] Ошибка создания лога проверки достижения."
-                "user_id=%s, achievement_uuid=%s",
-                user_id,
-                achievement_uuid,
-            )
-
-            raise
 
     async def get_logs(
         self,
@@ -190,28 +132,6 @@ class LogAchievementsRepo(BaseRepo):
         Период задаётся включительно:
 
         checked_at_from <= checked_at <= checked_at_to
-
-        Args:
-            user_id:
-                ID пользователя.
-
-            achievement_uuid:
-                UUID достижения.
-
-            checked_at_from:
-                Начало периода проверки включительно.
-
-            checked_at_to:
-                Конец периода проверки включительно.
-
-            limit:
-                Максимальное количество записей.
-
-            offset:
-                Количество пропускаемых записей.
-
-        Returns:
-            Последовательность логов, отсортированных от новых к старым.
         """
         if checked_at_from is not None and checked_at_to is not None:
             if checked_at_from > checked_at_to:
@@ -390,8 +310,6 @@ class LogAchievementsRepo(BaseRepo):
             path=path,
         )
 
-        # Разрешаем вызывающему коду передать результат блока явно,
-        # но проверяем, что он совпадает с вычисленным значением.
         supplied_result = result_node.get("result")
 
         if supplied_result is not None:
@@ -413,12 +331,7 @@ class LogAchievementsRepo(BaseRepo):
 
     @staticmethod
     def _get_children_key(node: Mapping[str, Any]) -> str | None:
-        """
-        Найти поле, содержащее дочерние условия.
-
-        Поддерживаются оба распространённых варианта:
-        conditions и blocks.
-        """
+        """Найти поле, содержащее дочерние условия."""
         if isinstance(node.get("conditions"), list):
             return "conditions"
 

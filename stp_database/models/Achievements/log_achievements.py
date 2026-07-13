@@ -2,28 +2,35 @@
 
 from datetime import datetime
 
-from sqlalchemy.dialects.mysql import LONGTEXT, VARCHAR
-from sqlalchemy import JSON, Enum, Boolean, Integer
-from sqlalchemy import BIGINT, DateTime, ForeignKey, String, Text, func
+from sqlalchemy import DateTime, Integer, String, UniqueConstraint, func
+from sqlalchemy.dialects.mysql import LONGTEXT
 from sqlalchemy.orm import Mapped, mapped_column
 
 from stp_database.models.base import Base
+
 
 class LogAchievements(Base):
     """Предмет лога просчета достижения."""
 
     __tablename__ = "log_achievements"
 
-    __table_args__ = {
-        "mysql_charset": "utf8mb4",
-        "mysql_collate": "utf8mb4_unicode_ci",
-    }
+    __table_args__ = (
+        UniqueConstraint(
+            "user_id",
+            "achievement_uuid",
+            name="uq_log_achievements_user_achievement",
+        ),
+        {
+            "mysql_charset": "utf8mb4",
+            "mysql_collate": "utf8mb4_unicode_ci",
+        },
+    )
 
     uuid: Mapped[str] = mapped_column(
         String(250),
         unique=True,
         primary_key=True,
-        comment="Уникальный идентификатор записи лога"
+        comment="Уникальный идентификатор записи лога",
     )
 
     user_id: Mapped[int] = mapped_column(
@@ -34,13 +41,14 @@ class LogAchievements(Base):
 
     achievement_uuid: Mapped[str] = mapped_column(
         String(250),
-        comment="Идентификатор достижения"
+        nullable=False,
+        comment="Идентификатор достижения",
     )
 
     check_result: Mapped[str] = mapped_column(
         LONGTEXT,
         nullable=False,
-        default='{}',
+        default="{}",
         comment="Результат проверки достижения по критериям",
     )
 
