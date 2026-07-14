@@ -45,7 +45,7 @@ class Activations(Base):
     form_data: Mapped[str] = mapped_column(
         LONGTEXT,
         nullable=False,
-        default='{}',
+        default='[]',
         comment="JSON список заполненных полей формы активации",
     )
 

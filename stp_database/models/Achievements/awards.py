@@ -77,7 +77,7 @@ class Awards(Base):
     activation_form_example: Mapped[str] = mapped_column(
         LONGTEXT,
         nullable=False,
-        default='{}',
+        default='[]',
         comment="JSON список полей формы активации",
     )
 
