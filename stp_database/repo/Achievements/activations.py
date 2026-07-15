@@ -9,7 +9,7 @@ from uuid import uuid4
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 
-from stp_database.models.Achievements import Activations
+from stp_database.models.Achievements import Activations, Inventory
 from stp_database.repo.base import BaseRepo
 
 logger = logging.getLogger(__name__)
@@ -28,6 +28,7 @@ class ActivationsRepo(BaseRepo):
     ) -> Sequence[Activations]:
         """Получить активации по необязательным фильтрам."""
         stmt = select(Activations)
+
         if award_uuid is not None:
             stmt = stmt.where(Activations.award_uuid == award_uuid)
         if item_uuid is not None:
@@ -37,8 +38,10 @@ class ActivationsRepo(BaseRepo):
             stmt = stmt.where(Activations.status == status)
         if review_by is not None:
             stmt = stmt.where(Activations.review_by == review_by)
+
         stmt = stmt.order_by(Activations.review_at.desc())
         result = await self.session.execute(stmt)
+
         return result.scalars().all()
 
     async def get_activation_by_uuid(
@@ -47,9 +50,158 @@ class ActivationsRepo(BaseRepo):
     ) -> Activations | None:
         """Получить активацию по UUID."""
         result = await self.session.execute(
-            select(Activations).where(Activations.uuid == activation_uuid)
+            select(Activations).where(
+                Activations.uuid == activation_uuid
+            )
         )
         return result.scalar_one_or_none()
+
+    async def create_activation_from_inventory(
+        self,
+        *,
+        user_id: int,
+        item_uuid: str,
+        item_count: int,
+        form_data: list[Mapping[str, Any]],
+        review_by: int = 0,
+        activation_uuid: str | None = None,
+    ) -> Activations:
+        """
+        Создать активацию и списать uses в одной транзакции.
+
+        Строка inventory блокируется через SELECT FOR UPDATE, поэтому две
+        параллельные заявки не смогут списать один и тот же остаток.
+        """
+        self._validate_positive_count(item_count)
+
+        inventory_stmt = (
+            select(Inventory)
+            .where(
+                Inventory.uuid == item_uuid,
+                Inventory.user_id == user_id,
+            )
+            .with_for_update()
+        )
+
+        try:
+            inventory_result = await self.session.execute(
+                inventory_stmt
+            )
+            item = inventory_result.scalar_one_or_none()
+
+            if item is None:
+                raise LookupError("Inventory item not found")
+
+            if item.status == "rollback":
+                raise ValueError(
+                    "Inventory item is unavailable for activation"
+                )
+
+            if item.remaining_uses < item_count:
+                raise ValueError(
+                    "Недостаточно доступных активаций: "
+                    f"остаток={item.remaining_uses}, "
+                    f"запрошено={item_count}"
+                )
+
+            item.remaining_uses -= item_count
+            item.status = (
+                "used_up"
+                if item.remaining_uses == 0
+                else "stored"
+            )
+
+            activation = Activations(
+                uuid=activation_uuid or str(uuid4()),
+                award_uuid=item.award_uuid,
+                item_uuid=item.uuid,
+                item_count=item_count,
+                form_data=self._serialize_form_data(form_data),
+                status="ready",
+                review_comment=None,
+                review_by=review_by,
+            )
+
+            self.session.add(activation)
+            await self.session.commit()
+            await self.session.refresh(activation)
+
+            return activation
+
+        except Exception:
+            await self.session.rollback()
+            logger.exception(
+                "[БД] Ошибка создания активации из inventory %s",
+                item_uuid,
+            )
+            raise
+
+    async def rollback_activation(
+        self,
+        *,
+        activation_uuid: str,
+        user_id: int,
+    ) -> tuple[Activations, Inventory]:
+        """
+        Отозвать ready-активацию и вернуть uses в inventory.
+
+        Активация и строка inventory блокируются и изменяются в одной
+        транзакции.
+        """
+        activation_stmt = (
+            select(Activations)
+            .where(Activations.uuid == activation_uuid)
+            .with_for_update()
+        )
+
+        try:
+            activation_result = await self.session.execute(
+                activation_stmt
+            )
+            activation = activation_result.scalar_one_or_none()
+
+            if activation is None:
+                raise LookupError("Activation not found")
+
+            if activation.status != "ready":
+                raise ValueError(
+                    "Отозвать можно только активацию со статусом ready"
+                )
+
+            inventory_stmt = (
+                select(Inventory)
+                .where(
+                    Inventory.uuid == activation.item_uuid,
+                    Inventory.user_id == user_id,
+                )
+                .with_for_update()
+            )
+            inventory_result = await self.session.execute(
+                inventory_stmt
+            )
+            item = inventory_result.scalar_one_or_none()
+
+            if item is None:
+                raise LookupError("Inventory item not found")
+
+            item.remaining_uses += activation.item_count
+            item.status = "stored"
+            activation.status = "rollback"
+            activation.review_at = datetime.now()
+
+            await self.session.commit()
+            await self.session.refresh(activation)
+            await self.session.refresh(item)
+
+            return activation, item
+
+        except Exception:
+            await self.session.rollback()
+            logger.exception(
+                "[БД] Ошибка отзыва активации %s",
+                activation_uuid,
+            )
+            raise
 
     async def create_activation(
         self,
@@ -78,6 +230,7 @@ class ActivationsRepo(BaseRepo):
             review_comment=review_comment,
             review_by=review_by,
         )
+
         if review_at is not None:
             activation.review_at = review_at
 
@@ -102,7 +255,9 @@ class ActivationsRepo(BaseRepo):
     ) -> Activations | None:
         """Обновить заявку на активацию по UUID."""
         if not changes:
-            raise ValueError("Необходимо передать минимум одно поле")
+            raise ValueError(
+                "Необходимо передать минимум одно поле"
+            )
 
         allowed_fields = {
             "item_count",
@@ -113,15 +268,20 @@ class ActivationsRepo(BaseRepo):
             "review_by",
         }
         invalid_fields = set(changes) - allowed_fields
+
         if invalid_fields:
             raise ValueError(
-                "Недопустимые поля: " + ", ".join(sorted(invalid_fields))
+                "Недопустимые поля: "
+                + ", ".join(sorted(invalid_fields))
             )
 
         result = await self.session.execute(
-            select(Activations).where(Activations.uuid == activation_uuid)
+            select(Activations).where(
+                Activations.uuid == activation_uuid
+            )
         )
         activation = result.scalar_one_or_none()
+
         if activation is None:
             return None
 
@@ -153,18 +313,32 @@ class ActivationsRepo(BaseRepo):
     def deserialize_form_data(
         activation: Activations,
     ) -> Mapping[str, Any] | list[Any]:
+        """Десериализовать form_data."""
         value = json.loads(activation.form_data or "[]")
+
         if not isinstance(value, (dict, list)):
-            raise TypeError("form_data должен быть JSON-объектом или массивом")
+            raise TypeError(
+                "form_data должен быть JSON-объектом или массивом"
+            )
+
         return value
 
     @staticmethod
     def _serialize_form_data(
         form_data: Mapping[str, Any] | list[Any],
     ) -> str:
+        """Сериализовать form_data."""
         if not isinstance(form_data, (Mapping, list)):
-            raise TypeError("form_data должен быть объектом или списком")
-        value = dict(form_data) if isinstance(form_data, Mapping) else form_data
+            raise TypeError(
+                "form_data должен быть объектом или списком"
+            )
+
+        value = (
+            dict(form_data)
+            if isinstance(form_data, Mapping)
+            else form_data
+        )
+
         return json.dumps(
             value,
             ensure_ascii=False,
@@ -174,12 +348,26 @@ class ActivationsRepo(BaseRepo):
 
     @staticmethod
     def _validate_positive_count(item_count: int) -> None:
-        if not isinstance(item_count, int) or isinstance(item_count, bool):
+        if (
+            not isinstance(item_count, int)
+            or isinstance(item_count, bool)
+        ):
             raise TypeError("item_count должен иметь тип int")
+
         if item_count <= 0:
-            raise ValueError("item_count должен быть больше нуля")
+            raise ValueError(
+                "item_count должен быть больше нуля"
+            )
 
     @staticmethod
     def _validate_status(status: str) -> None:
-        if status not in {"ready", "inprogress", "approved", "rejected"}:
-            raise ValueError("Недопустимый status активации")
+        if status not in {
+            "ready",
+            "inprogress",
+            "approved",
+            "rejected",
+            "rollback",
+        }:
+            raise ValueError(
+                "Недопустимый status активации"
+            )
