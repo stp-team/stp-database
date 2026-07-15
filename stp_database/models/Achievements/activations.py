@@ -50,7 +50,7 @@ class Activations(Base):
     )
 
     status: Mapped[str] = mapped_column(
-        Enum("ready", "inprogress", "approved", "rejected"),
+        Enum("ready", "inprogress", "approved", "rejected", "rollback"),
         nullable=False,
         comment="Статус заявки: в очереди, в работе, подтвержден, отклонен",
         default="ready",
