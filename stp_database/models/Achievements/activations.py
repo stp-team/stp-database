@@ -3,7 +3,7 @@
 from datetime import datetime
 
 from sqlalchemy.dialects.mysql import LONGTEXT, VARCHAR
-from sqlalchemy import JSON, Enum, Boolean, Integer
+from sqlalchemy import JSON, Enum, Boolean, Integer, null
 from sqlalchemy import BIGINT, DateTime, ForeignKey, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -65,10 +65,25 @@ class Activations(Base):
     review_at: Mapped[datetime] = mapped_column(
         DateTime,
         server_default=func.now(),
-        nullable=False,
+        nullable=True,
+        default=None,
     )
 
     review_by: Mapped[int] = mapped_column(
         BIGINT,
-        nullable=False
+        nullable=True,
+        default=None,
+    )
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        server_default=func.now(),
+        nullable=False,
+        comment="Когда создана заявка",
+    )
+
+    created_by: Mapped[int] = mapped_column(
+        BIGINT,
+        nullable=False,
+        comment="Кем создана заявка",
     )

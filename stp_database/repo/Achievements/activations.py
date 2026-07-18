@@ -25,6 +25,7 @@ class ActivationsRepo(BaseRepo):
         item_uuid: str | None = None,
         status: str | None = None,
         review_by: int | None = None,
+        created_by: int | None = None,
     ) -> Sequence[Activations]:
         """Получить активации по необязательным фильтрам."""
         stmt = select(Activations)
@@ -38,6 +39,8 @@ class ActivationsRepo(BaseRepo):
             stmt = stmt.where(Activations.status == status)
         if review_by is not None:
             stmt = stmt.where(Activations.review_by == review_by)
+        if created_by is not None:
+            stmt = stmt.where(Activations.created_by == created_by)
 
         stmt = stmt.order_by(Activations.review_at.desc())
         result = await self.session.execute(stmt)
@@ -63,7 +66,7 @@ class ActivationsRepo(BaseRepo):
         item_uuid: str,
         item_count: int,
         form_data: list[Mapping[str, Any]],
-        review_by: int = 0,
+        created_by: int,
         activation_uuid: str | None = None,
     ) -> Activations:
         """
@@ -119,7 +122,7 @@ class ActivationsRepo(BaseRepo):
                 form_data=self._serialize_form_data(form_data),
                 status="ready",
                 review_comment=None,
-                review_by=review_by,
+                created_by=created_by,
             )
 
             self.session.add(activation)
@@ -210,11 +213,9 @@ class ActivationsRepo(BaseRepo):
         item_uuid: str,
         item_count: int,
         form_data: Mapping[str, Any] | list[Any],
-        review_by: int,
         activation_uuid: str | None = None,
         status: str = "ready",
-        review_comment: str | None = None,
-        review_at: datetime | None = None,
+        created_by: int,
     ) -> Activations:
         """Добавить заявку на активацию награды."""
         self._validate_positive_count(item_count)
@@ -227,12 +228,11 @@ class ActivationsRepo(BaseRepo):
             item_count=item_count,
             form_data=self._serialize_form_data(form_data),
             status=status,
-            review_comment=review_comment,
-            review_by=review_by,
+            created_by=created_by,
         )
 
-        if review_at is not None:
-            activation.review_at = review_at
+        # if review_at is not None:
+        #     activation.review_at = review_at
 
         try:
             self.session.add(activation)
