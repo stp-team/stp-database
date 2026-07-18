@@ -22,6 +22,7 @@ class InventoryRepo(BaseRepo):
         user_id: int | None = None,
         award_uuid: str | None = None,
         status: str | None = None,
+        manager_role: int | None = None,
     ) -> Sequence[Inventory]:
         """Получить инвентарь по необязательным фильтрам."""
         stmt = select(Inventory)
@@ -32,6 +33,8 @@ class InventoryRepo(BaseRepo):
         if status is not None:
             self._validate_status(status)
             stmt = stmt.where(Inventory.status == status)
+        if manager_role is not None:
+            stmt = stmt.where(Inventory.manager_role == manager_role)
         stmt = stmt.order_by(Inventory.bought_at.desc())
         result = await self.session.execute(stmt)
         return result.scalars().all()
@@ -54,6 +57,7 @@ class InventoryRepo(BaseRepo):
         remaining_uses: int,
         item_uuid: str | None = None,
         status: str = "stored",
+        manager_role: int,
     ) -> Inventory:
         """Добавить предмет в инвентарь."""
         self._validate_non_negative_amount(remaining_uses)
@@ -67,6 +71,7 @@ class InventoryRepo(BaseRepo):
             award_uuid=award_uuid,
             remaining_uses=remaining_uses,
             status=status,
+            manager_role=manager_role,
         )
 
         try:
