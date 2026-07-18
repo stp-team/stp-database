@@ -26,6 +26,7 @@ class ActivationsRepo(BaseRepo):
         status: str | None = None,
         review_by: int | None = None,
         created_by: int | list[int] | None = None,
+        limit: int | None = None,
     ) -> Sequence[Activations]:
         """Получить активации по необязательным фильтрам."""
         stmt = select(Activations)
@@ -49,6 +50,13 @@ class ActivationsRepo(BaseRepo):
             )
 
         stmt = stmt.order_by(Activations.created_at.desc())
+
+        if limit is not None:
+            if limit <= 0:
+                raise ValueError("Limit должен быть больше 0")
+
+            stmt = stmt.limit(limit)
+
         result = await self.session.execute(stmt)
 
         return result.scalars().all()
