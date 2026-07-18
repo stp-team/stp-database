@@ -42,7 +42,7 @@ class ActivationsRepo(BaseRepo):
         if created_by is not None:
             stmt = stmt.where(Activations.created_by == created_by)
 
-        stmt = stmt.order_by(Activations.review_at.desc())
+        stmt = stmt.order_by(Activations.created_at.desc())
         result = await self.session.execute(stmt)
 
         return result.scalars().all()
