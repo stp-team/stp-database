@@ -31,6 +31,12 @@ class Activations(Base):
         comment="Идентификатор награды которая подана на активацию"
     )
 
+    manager_role: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        comment="Роль сотрудника, ответственного за обработку заявки",
+    )
+
     item_uuid: Mapped[str] = mapped_column(
         String(250),
         comment="Идентификатор купленного предмета в инвентаре"

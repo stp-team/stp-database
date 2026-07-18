@@ -32,12 +32,6 @@ class Inventory(Base):
         comment="ID пользователя",
     )
 
-    manager_role: Mapped[int] = mapped_column(
-        Integer,
-        nullable=False,
-        comment="Роль сотрудника, ответственного за обработку активации",
-    )
-
     award_uuid: Mapped[str] = mapped_column(
         String(250),
         comment="Идентификатор награды которая была куплена в инвентарь"

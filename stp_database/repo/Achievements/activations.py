@@ -69,17 +69,11 @@ class ActivationsRepo(BaseRepo):
     ) -> Sequence[Activations]:
         """Получить очередь заявок по роли ответственного."""
 
-        stmt = (
-            select(Activations)
-            .join(
-                Inventory,
-                Inventory.uuid == Activations.item_uuid,
-            )
-        )
+        stmt = select(Activations)
 
         if manager_role is not None:
             stmt = stmt.where(
-                Inventory.manager_role == manager_role
+                Activations.manager_role == manager_role
             )
 
         if status is not None:
@@ -113,6 +107,7 @@ class ActivationsRepo(BaseRepo):
         user_id: int,
         item_uuid: str,
         item_count: int,
+        manager_role: int,
         form_data: list[Mapping[str, Any]],
         created_by: int,
         activation_uuid: str | None = None,
@@ -165,6 +160,7 @@ class ActivationsRepo(BaseRepo):
             activation = Activations(
                 uuid=activation_uuid or str(uuid4()),
                 award_uuid=item.award_uuid,
+                manager_role=manager_role,
                 item_uuid=item.uuid,
                 item_count=item_count,
                 form_data=self._serialize_form_data(form_data),
@@ -260,6 +256,7 @@ class ActivationsRepo(BaseRepo):
         award_uuid: str,
         item_uuid: str,
         item_count: int,
+        manager_role: int,
         form_data: Mapping[str, Any] | list[Any],
         activation_uuid: str | None = None,
         status: str = "ready",
@@ -272,6 +269,7 @@ class ActivationsRepo(BaseRepo):
         activation = Activations(
             uuid=activation_uuid or str(uuid4()),
             award_uuid=award_uuid,
+            manager_role=manager_role,
             item_uuid=item_uuid,
             item_count=item_count,
             form_data=self._serialize_form_data(form_data),
