@@ -53,6 +53,40 @@ class ActivationsRepo(BaseRepo):
 
         return result.scalars().all()
 
+    async def get_queue_activations(
+            self,
+            *,
+            manager_role: int | None = None,
+            status: str | None = None,
+    ) -> Sequence[Activations]:
+        """Получить очередь заявок по роли ответственного."""
+
+        stmt = (
+            select(Activations)
+            .join(
+                Inventory,
+                Inventory.uuid == Activations.item_uuid,
+            )
+        )
+
+        if manager_role is not None:
+            stmt = stmt.where(
+                Inventory.manager_role == manager_role
+            )
+
+        if status is not None:
+            self._validate_status(status)
+            stmt = stmt.where(
+                Activations.status == status
+            )
+
+        stmt = stmt.order_by(
+            Activations.created_at.asc()
+        )
+
+        result = await self.session.execute(stmt)
+        return result.scalars().all()
+
     async def get_activation_by_uuid(
         self,
         activation_uuid: str,

@@ -55,9 +55,9 @@ class InventoryRepo(BaseRepo):
         user_id: int,
         award_uuid: str,
         remaining_uses: int,
+        manager_role: int,
         item_uuid: str | None = None,
         status: str = "stored",
-        manager_role: int,
     ) -> Inventory:
         """Добавить предмет в инвентарь."""
         self._validate_non_negative_amount(remaining_uses)
