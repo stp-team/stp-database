@@ -25,7 +25,7 @@ class ActivationsRepo(BaseRepo):
         item_uuid: str | None = None,
         status: str | None = None,
         review_by: int | None = None,
-        created_by: int | None = None,
+        created_by: int | list[int] | None = None,
     ) -> Sequence[Activations]:
         """Получить активации по необязательным фильтрам."""
         stmt = select(Activations)
@@ -39,8 +39,14 @@ class ActivationsRepo(BaseRepo):
             stmt = stmt.where(Activations.status == status)
         if review_by is not None:
             stmt = stmt.where(Activations.review_by == review_by)
-        if created_by is not None:
-            stmt = stmt.where(Activations.created_by == created_by)
+        if isinstance(created_by, int):
+            stmt = stmt.where(
+                Activations.created_by == created_by
+            )
+        elif created_by:
+            stmt = stmt.where(
+                Activations.created_by.in_(created_by)
+            )
 
         stmt = stmt.order_by(Activations.created_at.desc())
         result = await self.session.execute(stmt)
