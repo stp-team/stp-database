@@ -63,4 +63,5 @@ class SpecKPIRepo(BaseRepo, Generic[T]):
             logger.error(
                 f"[БД] Ошибка получения показателей специалиста(-ов) из {self.model.__tablename__}: {e}"
             )
-            return None if is_single else []
+            raise
+            #return None if is_single else []

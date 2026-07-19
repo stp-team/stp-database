@@ -55,7 +55,8 @@ class HeadPremiumRepo(BaseRepo):
             logger.error(
                 f"[БД] Ошибка получения показателей премиума руководителя(-ей): {e}"
             )
-            return None if is_single else []
+            raise
+            #return None if is_single else []
 
     async def update_premium(
         self,
