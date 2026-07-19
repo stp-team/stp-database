@@ -89,6 +89,34 @@ class ActivationsRepo(BaseRepo):
         result = await self.session.execute(stmt)
         return result.scalars().all()
 
+    async def get_history_activations(
+            self,
+            *,
+            review_at_from: datetime,
+            manager_role: int | None = None,
+            award_uuid: str | None = None,
+    ) -> Sequence[Activations]:
+        """Получить историю заявок за последние 30 дней. Статусы approved, rejected, rollback, inprogress"""
+        stmt = select(Activations).where(
+            Activations.status.in_(("approved", "rejected", "rollback", "inprogress")),
+            Activations.review_at.is_not(None),
+            Activations.review_at >= review_at_from,
+        )
+
+        if manager_role is not None:
+            stmt = stmt.where(Activations.manager_role == manager_role)
+
+        if award_uuid is not None:
+            stmt = stmt.where(Activations.award_uuid == award_uuid)
+
+        stmt = stmt.order_by(
+            Activations.review_at.desc(),
+            Activations.created_at.desc(),
+        )
+
+        result = await self.session.execute(stmt)
+        return result.scalars().all()
+
     async def get_activation_by_uuid(
         self,
         activation_uuid: str,
