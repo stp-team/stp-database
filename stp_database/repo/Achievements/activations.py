@@ -278,6 +278,91 @@ class ActivationsRepo(BaseRepo):
             )
             raise
 
+    async def reject_activation(
+            self,
+            *,
+            activation_uuid: str,
+            review_by: int,
+            review_comment: str,
+    ) -> tuple[Activations, Inventory]:
+        """
+        Отклонить активацию и вернуть uses в inventory.
+
+        Активация и строка inventory блокируются и изменяются
+        в одной транзакции.
+        """
+        normalized_comment = review_comment.strip()
+
+        if not normalized_comment:
+            raise ValueError(
+                "При отклонении заявки необходимо указать комментарий"
+            )
+
+        activation_stmt = (
+            select(Activations)
+            .where(
+                Activations.uuid == activation_uuid
+            )
+            .with_for_update()
+        )
+
+        try:
+            activation_result = await self.session.execute(
+                activation_stmt
+            )
+            activation = activation_result.scalar_one_or_none()
+
+            if activation is None:
+                raise LookupError("Activation not found")
+
+            if activation.status not in {
+                "ready",
+                "inprogress",
+            }:
+                raise ValueError(
+                    "Отклонить можно только заявку "
+                    "со статусом ready или inprogress"
+                )
+
+            inventory_stmt = (
+                select(Inventory)
+                .where(
+                    Inventory.uuid == activation.item_uuid,
+                    Inventory.user_id == activation.created_by,
+                )
+                .with_for_update()
+            )
+
+            inventory_result = await self.session.execute(
+                inventory_stmt
+            )
+            item = inventory_result.scalar_one_or_none()
+
+            if item is None:
+                raise LookupError("Inventory item not found")
+
+            item.remaining_uses += activation.item_count
+            item.status = "stored"
+
+            activation.status = "rejected"
+            activation.review_comment = normalized_comment
+            activation.review_at = datetime.now()
+            activation.review_by = review_by
+
+            await self.session.commit()
+            await self.session.refresh(activation)
+            await self.session.refresh(item)
+
+            return activation, item
+
+        except Exception:
+            await self.session.rollback()
+            logger.exception(
+                "[БД] Ошибка отклонения активации %s",
+                activation_uuid,
+            )
+            raise
+
     async def create_activation(
         self,
         *,
