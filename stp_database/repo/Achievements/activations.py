@@ -530,3 +530,53 @@ class ActivationsRepo(BaseRepo):
             raise ValueError(
                 "Недопустимый status активации"
             )
+
+    async def claim_activation(
+            self,
+            *,
+            activation_uuid: str,
+            review_by: int,
+    ) -> Activations:
+        """
+        Атомарно взять ready-заявку в работу.
+
+        Одновременно одну заявку сможет получить только один сотрудник.
+        """
+
+        stmt = (
+            select(Activations)
+            .where(
+                Activations.uuid == activation_uuid,
+            )
+            .with_for_update()
+        )
+
+        try:
+            result = await self.session.execute(stmt)
+            activation = result.scalar_one_or_none()
+
+            if activation is None:
+                raise LookupError("Активация не найдена")
+
+            if activation.status != "ready":
+                raise ValueError(
+                    "Активация уже взята в работу другим сотрудником"
+                )
+
+            activation.status = "inprogress"
+            activation.review_by = review_by
+            activation.review_at = datetime.now()
+            activation.review_comment = None
+
+            await self.session.commit()
+            await self.session.refresh(activation)
+
+            return activation
+
+        except Exception:
+            await self.session.rollback()
+            logger.exception(
+                "[БД] Ошибка взятия активации %s в работу",
+                activation_uuid,
+            )
+            raise
