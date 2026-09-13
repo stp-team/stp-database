@@ -132,6 +132,8 @@ class CandidateRepo(BaseRepo):
             "form_data",
             "readed_message_user_uuid",
             "readed_message_candidate_uuid",
+            "assigned_hr_id",
+            "assigned_rg_id",
         }
 
         for key, value in kwargs.items():
