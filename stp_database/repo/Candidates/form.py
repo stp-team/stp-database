@@ -62,6 +62,39 @@ class FormRepo(BaseRepo):
             )
             return None
 
+    async def get_default_form(
+            self,
+    ) -> Form | None:
+        query = (
+            select(Form)
+            .where(
+                Form.is_default.is_(True)
+            )
+            .order_by(
+                Form.updated_at.desc()
+            )
+            .limit(1)
+        )
+
+        try:
+            result = (
+                await self.session.execute(
+                    query
+                )
+            )
+
+            return (
+                result.scalars().first()
+            )
+
+        except SQLAlchemyError as e:
+            logger.error(
+                "[БД] Ошибка получения "
+                f"формы по умолчанию: {e}"
+            )
+
+            return None
+
     async def get_forms(
         self,
         created_by: int | None = None,
