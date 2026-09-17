@@ -10,6 +10,9 @@ from stp_database.repo.Candidates.message import MessageRepo
 from stp_database.repo.Candidates.attachment import (
     CandidateAttachmentRepo,
 )
+from stp_database.repo.Candidates.message_metrics import (
+    MessageMetricsRepo,
+)
 
 
 @dataclass
@@ -35,5 +38,13 @@ class CandidatesRequestsRepo:
             self,
     ) -> CandidateAttachmentRepo:
         return CandidateAttachmentRepo(
+            self.session
+        )
+
+    @property
+    def message_metrics(
+            self,
+    ) -> MessageMetricsRepo:
+        return MessageMetricsRepo(
             self.session
         )

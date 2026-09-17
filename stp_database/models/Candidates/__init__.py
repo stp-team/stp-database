@@ -4,6 +4,7 @@ from .attachment import CandidateAttachment
 from .candidate import Candidate
 from .form import Form
 from .message import Message
+from .message_metrics import MessageMetrics
 
 
 __all__ = [
@@ -11,4 +12,5 @@ __all__ = [
     "Candidate",
     "Form",
     "Message",
+    "MessageMetrics",
 ]
