@@ -4,7 +4,7 @@ import logging
 from datetime import datetime
 from typing import Sequence
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.exc import SQLAlchemyError
 
 from stp_database.models.Candidates import Form
@@ -44,6 +44,72 @@ class FormRepo(BaseRepo):
                 f"[БД] Ошибка создания формы {uuid}: {e}"
             )
             await self.session.rollback()
+            return None
+
+    async def set_default_form(
+            self,
+            form_uuid: str,
+            updated_by: int | None = None,
+    ) -> Form | None:
+        form = await self.get_form(
+            form_uuid
+        )
+
+        if form is None:
+            return None
+
+        try:
+            # -------------------------------------------------
+            # Все остальные формы перестают
+            # быть формой по умолчанию.
+            # -------------------------------------------------
+
+            await self.session.execute(
+                update(Form)
+                .where(
+                    Form.uuid != form_uuid
+                )
+                .values(
+                    is_default=False
+                )
+            )
+
+            # -------------------------------------------------
+            # Выбранная становится default.
+            # -------------------------------------------------
+
+            form.is_default = True
+
+            if updated_by is not None:
+                form.updated_by = (
+                    updated_by
+                )
+
+            form.updated_at = (
+                datetime.now()
+            )
+
+            # -------------------------------------------------
+            # Всё фиксируем одним commit.
+            # -------------------------------------------------
+
+            await self.session.commit()
+
+            await self.session.refresh(
+                form
+            )
+
+            return form
+
+        except SQLAlchemyError as e:
+            logger.error(
+                "[БД] Ошибка назначения "
+                "формы по умолчанию "
+                f"{form_uuid}: {e}"
+            )
+
+            await self.session.rollback()
+
             return None
 
     async def get_form(
