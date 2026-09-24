@@ -85,6 +85,7 @@ class CandidateRepo(BaseRepo):
         self,
         form_uuid: str | None = None,
         created_by: int | None = None,
+        statuses: Sequence[str] | None = None,
         limit: int = 100,
         offset: int = 0,
     ) -> Sequence[Candidate]:
@@ -95,6 +96,14 @@ class CandidateRepo(BaseRepo):
 
         if created_by is not None:
             filters.append(Candidate.created_by == created_by)
+
+        if statuses is not None:
+            if not statuses:
+                return []
+
+            filters.append(
+                Candidate.status.in_(statuses)
+            )
 
         query = (
             select(Candidate)
