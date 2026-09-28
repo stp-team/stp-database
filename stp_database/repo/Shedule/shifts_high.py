@@ -60,11 +60,17 @@ class ShiftsHighRepo(BaseRepo):
     def _deduplicate_items(
             highshifts_list: Sequence[dict],
     ) -> dict[tuple[int, datetime, datetime, str], dict]:
-
         items_by_key: dict[
             tuple[int, datetime, datetime, str],
             dict
         ] = {}
+
+        for item in highshifts_list:
+            items_by_key[
+                ShiftsHighRepo._highshift_key_from_item(item)
+            ] = item
+
+        return items_by_key
 
     @staticmethod
     def _index_existing(
