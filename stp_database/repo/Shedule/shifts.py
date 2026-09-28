@@ -19,26 +19,40 @@ class ShiftsRepo(BaseRepo):
 
     @classmethod
     def _shift_key_from_values(
-        cls,
-        user_id: int,
-        date_start: datetime,
-        shift_type: str | None,
-    ) -> tuple[int, date, str]:
-        return user_id, date_start.date(), shift_type or "other"
+            cls,
+            user_id: int,
+            date_start: datetime,
+            date_end: datetime,
+            shift_type: str | None,
+    ) -> tuple[int, datetime, datetime, str]:
+        return (
+            user_id,
+            date_start,
+            date_end,
+            shift_type or "other",
+        )
 
     @classmethod
-    def _shift_key_from_item(cls, item: dict) -> tuple[int, date, str]:
+    def _shift_key_from_item(
+            cls,
+            item: dict,
+    ) -> tuple[int, datetime, datetime, str]:
         return cls._shift_key_from_values(
             item["user_id"],
             item["date_start"],
+            item["date_end"],
             cls._shift_type(item),
         )
 
     @classmethod
-    def _shift_key(cls, shift: Shift) -> tuple[int, date, str]:
+    def _shift_key(
+            cls,
+            shift: Shift,
+    ) -> tuple[int, datetime, datetime, str]:
         return cls._shift_key_from_values(
             shift.user_id,
             shift.date_start,
+            shift.date_end,
             shift.type,
         )
 
