@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 
 from sqlalchemy import BIGINT, BOOLEAN, INTEGER, Computed, Date, Unicode, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.dialects.mysql import ENUM
 
 from stp_database.models.base import Base
 
@@ -97,7 +98,13 @@ class Employee(Base):
     role: Mapped[int] = mapped_column(
         BIGINT, nullable=False, comment="Уровень доступа сотрудника в БД"
     )
-
+    ts_level: Mapped[str] = mapped_column(
+        ENUM('0', '1', '2', '3'),
+        nullable=False,
+        default='0',
+        server_default='0',
+        comment='Уровень сотрудника ТС',
+    )
     is_trainee: Mapped[bool] = mapped_column(
         BOOLEAN, nullable=False, default=True, comment="Является ли сотрудник стажером"
     )
