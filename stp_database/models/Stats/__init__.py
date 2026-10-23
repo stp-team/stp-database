@@ -7,6 +7,7 @@ from .spec_premium import SpecPremium
 from .tests import AssignedTest
 from .tutors_schedule import TutorsSchedule
 from .questioner import QuestionerMonth, QuestionerChats
+from .sales_rg import SalesRg
 
 __all__ = [
     "HeadPremium",
@@ -19,4 +20,5 @@ __all__ = [
     "TutorsSchedule",
     "QuestionerMonth",
     "QuestionerChats",
+    "SalesRg",
 ]
