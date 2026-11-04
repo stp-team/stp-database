@@ -23,6 +23,9 @@ class ServicesParametrs(Base):
     value: Mapped[str | None] = mapped_column(
         Text, nullable=True
     )
+    description: Mapped[str | None] = mapped_column(
+        Text, nullable=True
+    )
 
     # В БД используется UNIQUE KEY
     __mapper_args__ = {

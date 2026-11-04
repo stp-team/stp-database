@@ -5,6 +5,8 @@ from sqlalchemy.exc import SQLAlchemyError
 from stp_database.models.Backend.services_parametrs import ServicesParametrs
 from stp_database.repo.base import BaseRepo
 
+_DESCRIPTION_UNSET = object()
+
 class ServicesParametrsRepo(BaseRepo):
     async def get_param(
             self,
@@ -25,32 +27,42 @@ class ServicesParametrsRepo(BaseRepo):
         result = await self.session.execute(stmt)
         return list(result.scalars().all())
 
+
     async def upsert_param(
-            self,
-            service: str,
-            name: str,
-            type: str,
-            value: str | None,
+        self,
+        service: str,
+        name: str,
+        type: str,
+        value: str | None,
+        description: str | None | object = _DESCRIPTION_UNSET,
     ) -> ServicesParametrs:
-        """ Создать или обновить параметр. """
+        """Создать или обновить параметр сервиса."""
+
         if type not in {"int", "float", "string", "text", "json"}:
             raise ValueError(f"Недопустимый тип параметра: {type}")
-        stmt = insert(ServicesParametrs).values(
-            service=service,
-            name=name,
-            type=type,
-            value=value,
-        )
 
-        stmt = stmt.on_duplicate_key_update(
-            type=type,
-            value=value,
-        )
+        values = {
+            "service": service,
+            "name": name,
+            "type": type,
+            "value": value,
+        }
+        updates = {
+            "type": type,
+            "value": value,
+        }
+
+        if description is not _DESCRIPTION_UNSET:
+            values["description"] = description
+            updates["description"] = description
+
+        stmt = insert(ServicesParametrs).values(**values)
+        stmt = stmt.on_duplicate_key_update(**updates)
 
         try:
             await self.session.execute(stmt)
             await self.session.commit()
-            return await self.session.get(ServicesParametrs, (service, name), populate_existing=True)
+            return await self.session.get(ServicesParametrs,(service, name),populate_existing=True)
         except SQLAlchemyError:
             await self.session.rollback()
             raise
