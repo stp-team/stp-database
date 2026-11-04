@@ -1,5 +1,6 @@
 """Инициализация моделей Бекенда."""
 
-__all__ = ["ApiToken", "ApiTokenAuditLog"]
-
 from stp_database.models.Backend.tokens import ApiToken, ApiTokenAuditLog
+from stp_database.models.Backend.services_parametrs import ServicesParametrs
+
+__all__ = ["ApiToken", "ApiTokenAuditLog", "ServicesParametrs"]

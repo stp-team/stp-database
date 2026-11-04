@@ -1,11 +1,9 @@
 """Репозиторий для работы с моделями БД STP."""
 
 from dataclasses import dataclass
-
 from sqlalchemy.ext.asyncio import AsyncSession
-
 from stp_database.repo.Backend.tokens import ApiTokenRepo
-
+from stp_database.repo.Backend.services_parametrs import ServicesParametrsRepo
 
 @dataclass
 class BackendRequestsRepo:
@@ -20,3 +18,8 @@ class BackendRequestsRepo:
     def api_token(self) -> ApiTokenRepo:
         """Инициализация репозитория ApiTokenRepo с сессией для работы с API токенами."""
         return ApiTokenRepo(self.session)
+
+    @property
+    def services_parametrs(self) -> ServicesParametrsRepo:
+        """ Параметры сервисов. """
+        return ServicesParametrsRepo(self.session)
