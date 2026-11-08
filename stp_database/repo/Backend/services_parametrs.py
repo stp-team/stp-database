@@ -18,6 +18,21 @@ class ServicesParametrsRepo(BaseRepo):
             ServicesParametrs, (service, name)
         )
 
+    async def get_all_params(self) -> list[ServicesParametrs]:
+        """Получить параметры всех сервисов."""
+
+        stmt = (
+            select(ServicesParametrs)
+            .order_by(
+                ServicesParametrs.service,
+                ServicesParametrs.name,
+            )
+        )
+
+        result = await self.session.execute(stmt)
+
+        return list(result.scalars().all())
+
     async def get_service_params(
             self,
             service: str,
@@ -27,6 +42,18 @@ class ServicesParametrsRepo(BaseRepo):
         result = await self.session.execute(stmt)
         return list(result.scalars().all())
 
+    async def get_services_list(self) -> list[str]:
+        """Получить список уникальных сервисов."""
+
+        stmt = (
+            select(ServicesParametrs.service)
+            .distinct()
+            .order_by(ServicesParametrs.service)
+        )
+
+        result = await self.session.execute(stmt)
+
+        return list(result.scalars().all())
 
     async def upsert_param(
         self,
