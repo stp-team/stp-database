@@ -34,6 +34,19 @@ class SpecKPIRepo(BaseRepo, Generic[T]):
         super().__init__(session)
         self.model = model
 
+    async def get_kpi_for_period(
+            self,
+            employee_id: int,
+            extraction_period: datetime,
+    ) -> T | None:
+        stmt = select(self.model).where(
+            self.model.employee_id == employee_id,
+            self.model.extraction_period == extraction_period,
+        )
+
+        result = await self.session.execute(stmt)
+        return result.scalar_one_or_none()
+
     async def get_kpi(self, employee_ids: int | list[int]) -> T | None | Sequence[T]:
         """Поиск показателей специалистов в БД по ID сотрудника.
 
