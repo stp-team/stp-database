@@ -1,4 +1,5 @@
 from sqlalchemy import Enum, String, Text, UniqueConstraint
+from sqlalchemy.dialects.mysql import LONGTEXT
 from sqlalchemy.orm import Mapped, mapped_column
 
 from stp_database.models.base import Base
@@ -21,7 +22,7 @@ class ServicesParametrs(Base):
         nullable=False,
     )
     value: Mapped[str | None] = mapped_column(
-        Text, nullable=True
+        LONGTEXT, nullable=True
     )
     description: Mapped[str | None] = mapped_column(
         Text, nullable=True
