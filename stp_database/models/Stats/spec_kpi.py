@@ -56,48 +56,15 @@ class SpecKPI(Base):
     csat: Mapped[float | None] = mapped_column(
         Float, nullable=True, comment="Значение показатели CSAT за период"
     )
-    csat_rated: Mapped[int | None] = mapped_column(
-        Integer, nullable=True, comment="Количество оцененных чатов в Генезис"
-    )
-    csat_high_rated: Mapped[int | None] = mapped_column(
-        Integer, nullable=True, comment="Количество высоко оцененных чатов в Генезис"
-    )
 
     # Колонки, связанные с AHT
     aht: Mapped[int | None] = mapped_column(
         Integer, nullable=True, comment="Значение показателя AHT за период"
     )
-    aht_chats_mobile: Mapped[int | None] = mapped_column(
-        Integer, nullable=True, comment="Кол-во контактов из приложения за период"
-    )
-    aht_chats_web: Mapped[int | None] = mapped_column(
-        Integer, nullable=True, comment="Кол-во контактов из сайта за период"
-    )
-    aht_chats_smartdom: Mapped[int | None] = mapped_column(
-        Integer, nullable=True, comment="Кол-во контактов из МП УДР за период"
-    )
-    aht_chats_dhcp: Mapped[int | None] = mapped_column(
-        Integer, nullable=True, comment="Кол-во контактов из портала за период"
-    )
-    aht_chats_telegram: Mapped[int | None] = mapped_column(
-        Integer, nullable=True, comment="Кол-во контактов из Telegram за период"
-    )
-    aht_chats_viber: Mapped[int | None] = mapped_column(
-        Integer, nullable=True, comment="Кол-во контактов из Viber за период"
-    )
 
     # Колонки, связанные с FLR
     flr: Mapped[float | None] = mapped_column(
         Float, nullable=True, comment="Значение показателя FLR за период"
-    )
-    flr_services: Mapped[int | None] = mapped_column(
-        Integer, nullable=True, comment="Кол-во сервисных заявок за период"
-    )
-    flr_services_cross: Mapped[int | None] = mapped_column(
-        Integer, nullable=True, comment="Кол-во сквозных обращений за период"
-    )
-    flr_services_transfer: Mapped[int | None] = mapped_column(
-        Integer, nullable=True, comment="Кол-во переведенных обращений за период"
     )
 
     # Колонки, связанные с CSI
@@ -110,9 +77,6 @@ class SpecKPI(Base):
         Float,
         nullable=True,
         comment="Значение показателя отклика за период",
-    )
-    pok_rated_contacts: Mapped[int | None] = mapped_column(
-        Integer, nullable=True, comment="Кол-во оцененных чатов за период"
     )
 
     # Колонки, связанные с Delay
@@ -128,26 +92,6 @@ class SpecKPI(Base):
         nullable=True,
         comment="Кол-во реальных продаж за период",
     )
-    sales_videos: Mapped[int | None] = mapped_column(
-        Integer,
-        nullable=True,
-        comment="Кол-во реальных продаж видеокамер за период",
-    )
-    sales_routers: Mapped[int | None] = mapped_column(
-        Integer,
-        nullable=True,
-        comment="Кол-во реальных продаж роутеров за период",
-    )
-    sales_tvs: Mapped[int | None] = mapped_column(
-        Integer,
-        nullable=True,
-        comment="Кол-во реальных продаж приставок за период",
-    )
-    sales_intercoms: Mapped[int | None] = mapped_column(
-        Integer,
-        nullable=True,
-        comment="Кол-во реальных продаж домофонов за период",
-    )
     sales_conversion: Mapped[float | None] = mapped_column(
         Float,
         nullable=True,
@@ -160,26 +104,6 @@ class SpecKPI(Base):
         nullable=True,
         comment="Кол-во потенциальных продаж за период",
     )
-    sales_potential_video: Mapped[int | None] = mapped_column(
-        Integer,
-        nullable=True,
-        comment="Кол-во потенциальных продаж видеокамер за период",
-    )
-    sales_potential_routers: Mapped[int | None] = mapped_column(
-        Integer,
-        nullable=True,
-        comment="Кол-во потенциальных продаж роутеров за период",
-    )
-    sales_potential_tvs: Mapped[int | None] = mapped_column(
-        Integer,
-        nullable=True,
-        comment="Кол-во потенциальных продаж приставок за период",
-    )
-    sales_potential_intercoms: Mapped[int | None] = mapped_column(
-        Integer,
-        nullable=True,
-        comment="Кол-во потенциальных продаж домофонов за период",
-    )
     sales_potential_conversion: Mapped[float | None] = mapped_column(
         Float,
         nullable=True,
@@ -191,16 +115,6 @@ class SpecKPI(Base):
         Integer,
         nullable=True,
         comment="Кол-во заявок на платный сервис за период",
-    )
-    services_remote: Mapped[int | None] = mapped_column(
-        Integer,
-        nullable=True,
-        comment="Кол-во заявок на удаленный платный сервис за период",
-    )
-    services_onsite: Mapped[int | None] = mapped_column(
-        Integer,
-        nullable=True,
-        comment="Кол-во заявок на выездной платный сервис за период",
     )
     services_conversion: Mapped[float | None] = mapped_column(
         Float,
