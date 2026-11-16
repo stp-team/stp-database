@@ -63,7 +63,7 @@ class HeadPremium(Base):
     aht_normative_rate: Mapped[float | None] = mapped_column(Float, nullable=True)
 
     raw_premium: Mapped[float | None] = mapped_column(
-        Float, null=True, comment="Общий процент выполнения"
+        Float, nullable=True, comment="Общий процент выполнения"
     )
     total_premium: Mapped[float | None] = mapped_column(
         Float, nullable=True, comment="Общий процент премии"
