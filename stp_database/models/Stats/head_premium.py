@@ -18,20 +18,18 @@ class HeadPremium(Base):
         gok_normative: Норматив показателя ГОК
         gok_pers_normative: Персональный норматив показателя ГОК
         gok_normative_rate: Процент выполнения норматива ГОК
-        gok_premium: Процент премии руководителя за ГОК
 
         flr: Значение показателя FLR
         flr_normative: Норматив показателя FLR
         flr_pers_normative: Персональный норматив показателя FLR
         flr_normative_rate: Процент выполнения норматива FLR
-        flr_premium: Процент премии руководителя за FLR
 
         aht: Значение показателя AHT
         aht_normative: Норматив показателя AHT
         aht_pers_normative: Персональный норматив показателя AHT
         aht_normative_rate: Процент выполнения норматива AHT
-        aht_premium: Процент премии руководителя за AHT
 
+        raw_premium: Общий процент выполнения
         total_premium: Общий процент премии
         updated_at: Дата обновления показателей премии
         extraction_period: Дата, с которой производилась выгрузка премии
@@ -53,23 +51,24 @@ class HeadPremium(Base):
     gok_normative: Mapped[float | None] = mapped_column(Float, nullable=True)
     gok_pers_normative: Mapped[float | None] = mapped_column(Float, nullable=True)
     gok_normative_rate: Mapped[float | None] = mapped_column(Float, nullable=True)
-    gok_premium: Mapped[float | None] = mapped_column(Float, nullable=True)
 
     flr: Mapped[float | None] = mapped_column(Float, nullable=True)
     flr_normative: Mapped[float | None] = mapped_column(Float, nullable=True)
     flr_pers_normative: Mapped[float | None] = mapped_column(Float, nullable=True)
     flr_normative_rate: Mapped[float | None] = mapped_column(Float, nullable=True)
-    flr_premium: Mapped[float | None] = mapped_column(Float, nullable=True)
 
     aht: Mapped[float | None] = mapped_column(Float, nullable=True)
     aht_normative: Mapped[float | None] = mapped_column(Float, nullable=True)
     aht_pers_normative: Mapped[float | None] = mapped_column(Float, nullable=True)
     aht_normative_rate: Mapped[float | None] = mapped_column(Float, nullable=True)
-    aht_premium: Mapped[float | None] = mapped_column(Float, nullable=True)
 
+    raw_premium: Mapped[float | None] = mapped_column(
+        Float, null=True, comment="Общий процент выполнения"
+    )
     total_premium: Mapped[float | None] = mapped_column(
         Float, nullable=True, comment="Общий процент премии"
     )
+
     updated_at: Mapped[datetime | None] = mapped_column(
         DateTime,
         nullable=True,
