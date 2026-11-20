@@ -4,7 +4,7 @@ import datetime
 import logging
 from typing import Sequence, TypedDict, Unpack
 
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.exc import SQLAlchemyError
 
 from stp_database.models.STP.transactions import Transaction
@@ -100,6 +100,60 @@ class TransactionRepo(BaseRepo):
         except SQLAlchemyError as e:
             logger.error(f"[БД] Ошибка получения транзакции {transaction_id}: {e}")
             return None
+        
+    async def get_transactions_by_period(
+        self,
+        date_from: datetime.date,
+        date_to: datetime.date,
+        user_id: int | None = None,
+        skip: int = 0,
+        limit: int = 100,
+    ) -> tuple[Sequence[Transaction], int]:
+
+        start_dt = datetime.datetime.combine(
+            date_from,
+            datetime.time.min,
+        )
+
+        end_dt = datetime.datetime.combine(
+            date_to + datetime.timedelta(days=1),
+            datetime.time.min,
+        )
+
+        filters = [
+            Transaction.created_at >= start_dt,
+            Transaction.created_at < end_dt,
+        ]
+
+        if user_id is not None:
+            filters.append(Transaction.user_id == user_id)
+
+        total_query = (
+            select(func.count(Transaction.id))
+            .where(*filters)
+        )
+
+        total_result = await self.session.execute(total_query)
+        total = total_result.scalar_one()
+
+        transactions_query = (
+            select(Transaction)
+            .where(*filters)
+            .order_by(
+                Transaction.created_at.desc(),
+                Transaction.id.desc(),
+            )
+            .offset(skip)
+            .limit(limit)
+        )
+
+        result = await self.session.execute(
+            transactions_query
+        )
+
+        transactions = result.scalars().all()
+
+        return transactions, total
 
     async def get_user_transactions(
         self, user_id: int, only_achievements: bool = False
