@@ -12,8 +12,6 @@ from .questioner import (
 from stp_database.repo.Stats.head_premium import HeadPremiumRepo
 from stp_database.repo.Stats.spec_kpi import SpecKPIRepo
 from stp_database.repo.Stats.spec_premium import SpecPremiumRepo
-from stp_database.repo.Stats.tests import AssignedTestRepo
-from stp_database.repo.Stats.tutors_schedule import TutorsScheduleRepo
 
 
 @dataclass
@@ -59,13 +57,3 @@ class StatsRequestsRepo:
     def spec_month_kpi(self) -> SpecKPIRepo:
         """Инициализация репозитория SpecKPIRepo с сессией для работы с месячными показателями специалистов."""
         return SpecKPIRepo(self.session, SpecMonthKPI)
-
-    @property
-    def tutors_schedule(self) -> TutorsScheduleRepo:
-        """Инициализация репозитория TutorsScheduleRepo с сессией для работы с графиком наставников и стажеров."""
-        return TutorsScheduleRepo(self.session)
-
-    @property
-    def tests(self) -> AssignedTestRepo:
-        """Инициализация репозитория AssignedTestRepo с сессией для работы с тестами."""
-        return AssignedTestRepo(self.session)
