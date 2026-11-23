@@ -74,6 +74,8 @@ class AchievementsRepo(BaseRepo):
             positions: list[str] | None = None,
             period: str | None = None,
             reward: int | None = None,
+            reward_type: str = "fix",
+            reward_calc: str | None = None,
             rule_expression: str | None = None,
             created_by: int | None = None,
     ) -> None:
@@ -85,6 +87,8 @@ class AchievementsRepo(BaseRepo):
             positions=positions,
             period=period,
             reward=reward,
+            reward_type=reward_type,
+            reward_calc=reward_calc,
             rule_expression=rule_expression,
             created_by=created_by,
         )
@@ -129,6 +133,8 @@ class AchievementsRepo(BaseRepo):
             "positions",
             "period",
             "reward",
+            "reward_type",
+            "reward_calc",
             "rule_expression",
             "updated_by",
         }

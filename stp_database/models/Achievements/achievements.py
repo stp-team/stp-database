@@ -52,6 +52,21 @@ class Achievements(Base):
         default=1,
         comment="Награда",
     )
+
+    reward_type: Mapped[str] = mapped_column(
+        Enum("fix", "calculate"),
+        nullable=False,
+        default="fix",
+        server_default="fix",
+        comment="Тип расчёта награды",
+    )
+
+    reward_calc: Mapped[str | None] = mapped_column(
+        LONGTEXT,
+        nullable=True,
+        comment="JSON-формула расчёта награды",
+    )
+    
     rule_expression: Mapped[str] = mapped_column(
         LONGTEXT,
         nullable=False,
