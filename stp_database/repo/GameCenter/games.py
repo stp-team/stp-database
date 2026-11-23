@@ -8,7 +8,6 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from stp_database.models.GameCenter.assigned_chances import AssignedChances
 from stp_database.models.GameCenter.games_list import GameList
-from stp_database.models.Teaching import result
 from stp_database.repo.base import BaseRepo
 
 logger = logging.getLogger(__name__)

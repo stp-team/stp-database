@@ -5,6 +5,7 @@ from .spec_kpi import SpecDayKPI, SpecMonthKPI, SpecWeekKPI
 from .spec_premium import SpecPremium
 from .questioner import QuestionerMonth, QuestionerChats
 from .sales_rg import SalesRg
+from .tutors import Tutors
 
 __all__ = [
     "HeadPremium",
@@ -15,4 +16,5 @@ __all__ = [
     "QuestionerMonth",
     "QuestionerChats",
     "SalesRg",
+    "Tutors",
 ]
